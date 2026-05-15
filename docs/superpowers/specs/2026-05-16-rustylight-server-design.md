@@ -19,7 +19,7 @@ The service is a single process running one Tokio async runtime with two concurr
 ┌─────────────────────────────────────────────────────┐
 │                  rustylight-server                  │
 │                                                     │
-│  ┌──────────────┐    ┌──────────────────────────┐  │
+│  ┌──────────────┐    ┌───────────────────────────┐  │
 │  │  USB Thread  │    │    Axum HTTP Server       │  │
 │  │  (blocking)  │    │    (async, Tokio)         │  │
 │  │              │    │                           │  │
@@ -184,10 +184,12 @@ Authentication is checked before any busylight operation. The Swagger UI endpoin
 
 **Config:**
 ```toml
+[server]
+port = 8443
+
 [tls]
 cert_file = "/etc/rustylight/tls.crt"
 key_file  = "/etc/rustylight/tls.key"
-port      = 8443
 ```
 
 The port defaults to `8443` so the service does not require root privileges.
