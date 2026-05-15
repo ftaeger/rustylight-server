@@ -71,6 +71,8 @@ Kuando Busylights accept 64-byte HID feature reports. The command structure vari
 - Brightness byte (0 = off, 100 = full on)
 - Keepalive field (model-dependent position)
 
+The protocol supports a hardware step-sequence of up to 8 steps, where each step defines a color, on-duration, and off-duration. The service uses a 2-step sequence to implement blinking entirely in device firmware — no software polling required. Steady-color mode uses a single step with a zero off-duration.
+
 ### Keepalive
 
 Models including the UC Omega and Alpha require a keepalive HID report every ~2 seconds or they revert to their default state. The USB polling thread sends the keepalive automatically in its loop whenever a device handle is open.
@@ -81,7 +83,7 @@ The USB layer is abstracted behind a `BuslightDevice` trait:
 
 ```rust
 trait BuslightDevice: Send + Sync {
-    fn set_color(&self, r: u8, g: u8, b: u8, on: bool) -> Result<()>;
+    fn set_state(&self, state: &LightState) -> Result<()>;
     fn is_connected(&self) -> bool;
 }
 ```
@@ -105,18 +107,47 @@ Serves the OpenAPI 3.0 spec. Unauthenticated.
 #### `GET /api/light`
 Returns the current busylight status. Requires authentication.
 
-Response body:
+Response body (steady color):
 ```json
-{ "connected": true, "on": true, "r": 255, "g": 0, "b": 0 }
+{ "connected": true, "on": true, "r": 255, "g": 0, "b": 0, "blink": false }
 ```
+
+Response body (blinking between color and off):
+```json
+{ "connected": true, "on": true, "r": 255, "g": 0, "b": 0, "blink": true, "blink_on_ms": 500, "blink_off_ms": 500 }
+```
+
+Response body (blinking between two colors):
+```json
+{ "connected": true, "on": true, "r": 255, "g": 0, "b": 0, "blink": true, "blink_on_ms": 500, "blink_off_ms": 500, "r2": 0, "g2": 0, "b2": 255 }
+```
+
+When `blink` is `false`, the `blink_on_ms`, `blink_off_ms`, `r2`, `g2`, and `b2` fields are omitted from the response.
 
 #### `POST /api/light`
 Sets the busylight color and on/off state. Requires authentication.
 
-Request body:
+Request body (steady color):
 ```json
 { "on": true, "r": 255, "g": 0, "b": 0 }
 ```
+
+Request body (blink between color and off):
+```json
+{ "on": true, "r": 255, "g": 0, "b": 0, "blink": true, "blink_on_ms": 500, "blink_off_ms": 500 }
+```
+
+Request body (blink between two colors):
+```json
+{ "on": true, "r": 255, "g": 0, "b": 0, "blink": true, "blink_on_ms": 500, "blink_off_ms": 500, "r2": 0, "g2": 0, "b2": 255 }
+```
+
+**Blink field rules:**
+- `blink` defaults to `false` if omitted.
+- `blink_on_ms` and `blink_off_ms` default to `500` if `blink` is `true` and they are omitted.
+- `r2`, `g2`, `b2` default to `0` (off) if omitted — producing a color-to-off blink.
+- `blink_on_ms` and `blink_off_ms` must be between `50` and `10000` ms; values outside this range return `400 Bad Request`.
+- If `on` is `false`, blink fields are ignored and the device is turned off.
 
 ### HTTP Response Codes
 
