@@ -1,5 +1,5 @@
 use crate::device::{
-    models::{ModelVariant, KNOWN_DEVICES},
+    models::ModelVariant,
     report::build_report,
     SharedState,
 };
