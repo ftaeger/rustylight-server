@@ -9,67 +9,61 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-deb:
+  build-packages:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            deb_arch: amd64
-          - target: i686-unknown-linux-gnu
-            deb_arch: i386
-          - target: aarch64-unknown-linux-gnu
-            deb_arch: arm64
-          - target: armv7-unknown-linux-gnueabihf
-            deb_arch: armhf
+        target:
+          - x86_64-unknown-linux-gnu
+          - i686-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - armv7-unknown-linux-gnueabihf
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
+
       - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cross
-      - run: cross build --target ${{ matrix.target }} --release
-      - run: cargo install cargo-deb
-      - run: cargo deb --target ${{ matrix.target }} --no-build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: deb-${{ matrix.deb_arch }}
-          path: target/${{ matrix.target }}/debian/*.deb
+          key: ${{ runner.os }}-cargo-release-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
-  build-rpm:
-    runs-on: ubuntu-latest
-    container: almalinux:8
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            rpm_arch: x86_64
-          - target: aarch64-unknown-linux-gnu
-            rpm_arch: aarch64
-    steps:
-      - uses: actions/checkout@v4
-      - run: dnf install -y curl gcc openssl-devel hidapi-devel
-      - uses: dtolnay/rust-toolchain@stable
       - uses: taiki-e/install-action@v2
         with:
           tool: cross
-      - run: cross build --target ${{ matrix.target }} --release
-      - run: cargo install cargo-generate-rpm
-      - run: cargo generate-rpm --target ${{ matrix.target }}
+
+      - name: Cache packaging tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin
+          key: cargo-tools-deb-rpm-v1
+
+      - name: Install packaging tools
+        run: |
+          which cargo-deb          || cargo install cargo-deb
+          which cargo-generate-rpm || cargo install cargo-generate-rpm
+
+      - name: Build
+        run: cross build --target ${{ matrix.target }} --release
+
+      - name: Package .deb
+        run: cargo deb --target ${{ matrix.target }} --no-build
+
+      - name: Package .rpm
+        run: cargo generate-rpm --target ${{ matrix.target }}
+
       - uses: actions/upload-artifact@v4
         with:
-          name: rpm-${{ matrix.rpm_arch }}
-          path: target/${{ matrix.target }}/generate-rpm/*.rpm
+          name: packages-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/debian/*.deb
+            target/${{ matrix.target }}/generate-rpm/*.rpm
 
   publish:
-    needs: [build-deb, build-rpm]
+    needs: build-packages
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -78,6 +72,8 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
+
       - uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**
+          generate_release_notes: true
