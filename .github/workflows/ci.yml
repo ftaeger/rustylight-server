@@ -29,6 +29,7 @@ jobs:
       - run: cargo test
 
   cross-check:
+    needs: check
     runs-on: ubuntu-latest
     strategy:
       matrix:
