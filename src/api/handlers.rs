@@ -40,9 +40,9 @@ pub fn validate_post_body(state: &LightState) -> Result<(), String> {
     )
 )]
 pub async fn get_light(
-    _auth: AuthGuard,
     addr: Option<ConnectInfo<SocketAddr>>,
     State(state): State<AppState>,
+    _auth: AuthGuard,
 ) -> impl IntoResponse {
     tracing::debug!(
         "GET /api/light from {}",
@@ -71,9 +71,9 @@ pub async fn get_light(
     )
 )]
 pub async fn post_light(
-    AuthGuard(body_bytes): AuthGuard,
     addr: Option<ConnectInfo<SocketAddr>>,
     State(state): State<AppState>,
+    AuthGuard(body_bytes): AuthGuard,
 ) -> impl IntoResponse {
     let light_state: LightState = match serde_json::from_slice(&body_bytes) {
         Ok(s) => s,
