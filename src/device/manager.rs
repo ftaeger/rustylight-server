@@ -1,8 +1,4 @@
-use crate::device::{
-    models::ModelVariant,
-    report::build_report,
-    SharedState,
-};
+use crate::device::{models::ModelVariant, report::build_report, SharedState};
 use hidapi::HidApi;
 use std::{
     sync::{Arc, Mutex},
@@ -47,7 +43,9 @@ fn run_loop(shared: Arc<Mutex<SharedState>>) {
 fn try_connect(shared: &Arc<Mutex<SharedState>>) -> Option<hidapi::HidDevice> {
     let api = HidApi::new().ok()?;
     for dev_info in api.device_list() {
-        if let Some(variant) = ModelVariant::from_vid_pid(dev_info.vendor_id(), dev_info.product_id()) {
+        if let Some(variant) =
+            ModelVariant::from_vid_pid(dev_info.vendor_id(), dev_info.product_id())
+        {
             match dev_info.open_device(&api) {
                 Ok(dev) => {
                     let mut s = shared.lock().unwrap();

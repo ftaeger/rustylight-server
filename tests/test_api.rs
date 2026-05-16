@@ -18,7 +18,10 @@ async fn get_light_returns_connected_false_when_device_absent() {
     for (k, v) in &headers {
         builder = builder.header(*k, v);
     }
-    let resp = app.oneshot(builder.body(Body::empty()).unwrap()).await.unwrap();
+    let resp = app
+        .oneshot(builder.body(Body::empty()).unwrap())
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let json = body_json(resp).await;
     assert_eq!(json["connected"], false);

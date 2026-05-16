@@ -2,8 +2,7 @@ use anyhow::Result;
 use tracing_subscriber::{fmt, EnvFilter};
 
 pub fn init(level: &str, log_file: &str) -> Result<()> {
-    let filter = EnvFilter::try_new(level)
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let filter = EnvFilter::try_new(level).unwrap_or_else(|_| EnvFilter::new("info"));
 
     let log_dir = std::path::Path::new(log_file)
         .parent()

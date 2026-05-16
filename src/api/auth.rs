@@ -69,10 +69,8 @@ impl IntoResponse for AuthError {
                     axum::Json(serde_json::json!({"error": "timestamp outside ±30s window"})),
                 )
                     .into_response();
-                resp.headers_mut().insert(
-                    "X-Server-Time",
-                    server_time.to_string().parse().unwrap(),
-                );
+                resp.headers_mut()
+                    .insert("X-Server-Time", server_time.to_string().parse().unwrap());
                 resp
             }
             AuthError::InvalidSignature => (
@@ -123,9 +121,7 @@ where
             });
         }
 
-        let body = Bytes::from_request(req, state)
-            .await
-            .unwrap_or_default();
+        let body = Bytes::from_request(req, state).await.unwrap_or_default();
 
         if !verify_signature(psk, &ts_header, &body, &sig_header) {
             return Err(AuthError::InvalidSignature);

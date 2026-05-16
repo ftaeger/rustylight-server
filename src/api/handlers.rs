@@ -44,7 +44,10 @@ pub async fn get_light(
     addr: Option<ConnectInfo<SocketAddr>>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    tracing::debug!("GET /api/light from {}", addr.map_or("unknown".to_owned(), |a| a.0.to_string()));
+    tracing::debug!(
+        "GET /api/light from {}",
+        addr.map_or("unknown".to_owned(), |a| a.0.to_string())
+    );
     let shared = state.shared.lock().unwrap();
     let mut body = serde_json::to_value(&shared.light_state).unwrap();
     body["connected"] = serde_json::Value::Bool(shared.connected);
@@ -101,7 +104,10 @@ pub async fn post_light(
             .into_response();
     }
 
-    tracing::debug!("POST /api/light from {}", addr.map_or("unknown".to_owned(), |a| a.0.to_string()));
+    tracing::debug!(
+        "POST /api/light from {}",
+        addr.map_or("unknown".to_owned(), |a| a.0.to_string())
+    );
     shared.light_state = light_state;
     shared.state_dirty = true;
 

@@ -50,11 +50,7 @@ async fn invalid_signature_returns_403() {
 async fn stale_timestamp_returns_403_with_server_time_header() {
     let app = common::make_app(true);
     let stale_ts = "1000000000";
-    let sig = rustylight_server::api::auth::compute_signature(
-        &common::test_psk(),
-        stale_ts,
-        b"",
-    );
+    let sig = rustylight_server::api::auth::compute_signature(&common::test_psk(), stale_ts, b"");
     let req = Request::builder()
         .method("GET")
         .uri("/api/light")

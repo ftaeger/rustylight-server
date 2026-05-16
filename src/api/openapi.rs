@@ -23,8 +23,5 @@ use crate::device::LightState;
 pub struct ApiDoc;
 
 pub fn swagger_router() -> Router {
-    Router::new().merge(
-        SwaggerUi::new("/api")
-            .url("/api/openapi.json", ApiDoc::openapi()),
-    )
+    Router::new().merge(SwaggerUi::new("/api").url("/api/openapi.json", ApiDoc::openapi()))
 }
