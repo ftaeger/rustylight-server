@@ -15,8 +15,8 @@ pub fn build_report(state: &LightState) -> [u8; REPORT_SIZE] {
     }
 
     if state.blink {
-        let on_ticks = (state.effective_blink_on_ms() / 10) as u16;
-        let off_ticks = (state.effective_blink_off_ms() / 10) as u16;
+        let on_ticks = state.effective_blink_on_ms() / 10;
+        let off_ticks = state.effective_blink_off_ms() / 10;
 
         let r2 = state.r2.unwrap_or(0);
         let g2 = state.g2.unwrap_or(0);

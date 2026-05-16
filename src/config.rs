@@ -6,24 +6,13 @@ use std::path::Path;
 
 pub const CONFIG_PATH: &str = "/etc/rustylight/rustylight.conf";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
     pub server: ServerConfig,
     pub tls: TlsConfig,
     pub auth: AuthConfig,
     pub logging: LoggingConfig,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            server: ServerConfig::default(),
-            tls: TlsConfig::default(),
-            auth: AuthConfig::default(),
-            logging: LoggingConfig::default(),
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

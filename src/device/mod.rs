@@ -49,20 +49,11 @@ pub trait BuslightDevice: Send + Sync {
     fn is_connected(&self) -> bool;
 }
 
+#[derive(Default)]
 pub struct SharedState {
     pub connected: bool,
     pub light_state: LightState,
     pub state_dirty: bool,
-}
-
-impl Default for SharedState {
-    fn default() -> Self {
-        Self {
-            connected: false,
-            light_state: LightState::default(),
-            state_dirty: false,
-        }
-    }
 }
 
 #[cfg(test)]
