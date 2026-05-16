@@ -1,7 +1,15 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    extract::{ConnectInfo, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
 use std::net::SocketAddr;
-use axum::extract::ConnectInfo;
-use crate::{api::AppState, device::LightState};
+
+use crate::{
+    api::{auth::AuthGuard, AppState},
+    device::LightState,
+};
 
 pub fn validate_post_body(state: &LightState) -> Result<(), String> {
     if state.blink {
@@ -18,14 +26,105 @@ pub fn validate_post_body(state: &LightState) -> Result<(), String> {
 }
 
 pub async fn get_light(
-    State(_state): State<AppState>,
+    _auth: AuthGuard,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({"connected": false, "on": false, "r": 0, "g": 0, "b": 0, "blink": false}))
+    tracing::debug!("GET /api/light from {addr}");
+    let shared = state.shared.lock().unwrap();
+    let mut body = serde_json::to_value(&shared.light_state).unwrap();
+    body["connected"] = serde_json::Value::Bool(shared.connected);
+    Json(body)
 }
 
 pub async fn post_light(
-    State(_state): State<AppState>,
-    Json(_body): Json<LightState>,
+    AuthGuard(body_bytes): AuthGuard,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
-    StatusCode::OK
+    let light_state: LightState = match serde_json::from_slice(&body_bytes) {
+        Ok(s) => s,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid JSON: {e}")})),
+            )
+                .into_response();
+        }
+    };
+
+    if let Err(msg) = validate_post_body(&light_state) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response();
+    }
+
+    let mut shared = state.shared.lock().unwrap();
+
+    if !shared.connected {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({"error": "Busylight not connected"})),
+        )
+            .into_response();
+    }
+
+    tracing::debug!("POST /api/light from {addr}");
+    shared.light_state = light_state;
+    shared.state_dirty = true;
+
+    (StatusCode::OK, Json(serde_json::json!({"ok": true}))).into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::device::LightState;
+
+    #[test]
+    fn validate_light_state_rejects_blink_ms_below_minimum() {
+        let state = LightState {
+            on: true,
+            r: 255,
+            g: 0,
+            b: 0,
+            blink: true,
+            blink_on_ms: Some(40),
+            blink_off_ms: Some(500),
+            ..Default::default()
+        };
+        assert!(validate_post_body(&state).is_err());
+    }
+
+    #[test]
+    fn validate_light_state_rejects_blink_ms_above_maximum() {
+        let state = LightState {
+            on: true,
+            r: 255,
+            g: 0,
+            b: 0,
+            blink: true,
+            blink_on_ms: Some(500),
+            blink_off_ms: Some(11000),
+            ..Default::default()
+        };
+        assert!(validate_post_body(&state).is_err());
+    }
+
+    #[test]
+    fn validate_light_state_accepts_valid_blink() {
+        let state = LightState {
+            on: true,
+            r: 255,
+            g: 0,
+            b: 0,
+            blink: true,
+            blink_on_ms: Some(500),
+            blink_off_ms: Some(500),
+            ..Default::default()
+        };
+        assert!(validate_post_body(&state).is_ok());
+    }
 }
