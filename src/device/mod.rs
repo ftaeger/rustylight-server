@@ -2,8 +2,6 @@ pub mod manager;
 pub mod models;
 pub mod report;
 
-use thiserror::Error;
-
 #[derive(
     Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq, utoipa::ToSchema,
 )]
@@ -34,19 +32,6 @@ impl LightState {
     pub fn effective_blink_off_ms(&self) -> u16 {
         self.blink_off_ms.unwrap_or(500)
     }
-}
-
-#[derive(Debug, Error)]
-pub enum DeviceError {
-    #[error("device not connected")]
-    NotConnected,
-    #[error("HID error: {0}")]
-    Hid(String),
-}
-
-pub trait BuslightDevice: Send + Sync {
-    fn set_state(&self, state: &LightState) -> Result<(), DeviceError>;
-    fn is_connected(&self) -> bool;
 }
 
 #[derive(Default)]
