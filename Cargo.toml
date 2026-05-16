@@ -72,7 +72,6 @@ assets = [
     ["packaging/rustylight.logrotate", "etc/logrotate.d/rustylight", "644"],
 ]
 maintainer-scripts = "packaging/"
-systemd-units = { enable = true }
 
 [package.metadata.generate-rpm]
 assets = [
