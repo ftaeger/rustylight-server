@@ -41,10 +41,10 @@ pub fn validate_post_body(state: &LightState) -> Result<(), String> {
 )]
 pub async fn get_light(
     _auth: AuthGuard,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    addr: Option<ConnectInfo<SocketAddr>>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    tracing::debug!("GET /api/light from {addr}");
+    tracing::debug!("GET /api/light from {}", addr.map_or("unknown".to_owned(), |a| a.0.to_string()));
     let shared = state.shared.lock().unwrap();
     let mut body = serde_json::to_value(&shared.light_state).unwrap();
     body["connected"] = serde_json::Value::Bool(shared.connected);
@@ -69,7 +69,7 @@ pub async fn get_light(
 )]
 pub async fn post_light(
     AuthGuard(body_bytes): AuthGuard,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    addr: Option<ConnectInfo<SocketAddr>>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     let light_state: LightState = match serde_json::from_slice(&body_bytes) {
@@ -101,7 +101,7 @@ pub async fn post_light(
             .into_response();
     }
 
-    tracing::debug!("POST /api/light from {addr}");
+    tracing::debug!("POST /api/light from {}", addr.map_or("unknown".to_owned(), |a| a.0.to_string()));
     shared.light_state = light_state;
     shared.state_dirty = true;
 
