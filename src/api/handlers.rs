@@ -25,6 +25,20 @@ pub fn validate_post_body(state: &LightState) -> Result<(), String> {
     Ok(())
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/light",
+    responses(
+        (status = 200, description = "Current busylight state"),
+        (status = 401, description = "Missing auth headers"),
+        (status = 403, description = "Invalid signature or timestamp"),
+        (status = 503, description = "Busylight not connected"),
+    ),
+    params(
+        ("X-Timestamp" = String, Header, description = "Unix timestamp (seconds UTC)"),
+        ("X-Signature" = String, Header, description = "HMAC-SHA256(psk, timestamp+body) as lowercase hex"),
+    )
+)]
 pub async fn get_light(
     _auth: AuthGuard,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
@@ -37,6 +51,22 @@ pub async fn get_light(
     Json(body)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/light",
+    request_body = LightState,
+    responses(
+        (status = 200, description = "State applied"),
+        (status = 400, description = "Invalid request body"),
+        (status = 401, description = "Missing auth headers"),
+        (status = 403, description = "Invalid signature or timestamp"),
+        (status = 503, description = "Busylight not connected"),
+    ),
+    params(
+        ("X-Timestamp" = String, Header, description = "Unix timestamp (seconds UTC)"),
+        ("X-Signature" = String, Header, description = "HMAC-SHA256(psk, timestamp+body) as lowercase hex"),
+    )
+)]
 pub async fn post_light(
     AuthGuard(body_bytes): AuthGuard,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,

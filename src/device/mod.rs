@@ -4,7 +4,7 @@ pub mod report;
 
 use thiserror::Error;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq, utoipa::ToSchema)]
 pub struct LightState {
     pub on: bool,
     pub r: u8,
