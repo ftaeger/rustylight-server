@@ -19,11 +19,11 @@ jobs:
           - aarch64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -36,7 +36,7 @@ jobs:
           tool: cross
 
       - name: Cache packaging tools
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/bin
           key: cargo-tools-deb-rpm-v1
