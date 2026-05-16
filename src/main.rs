@@ -13,16 +13,13 @@ mod tls;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut cfg = config::load_or_create(config::CONFIG_PATH)
-        .context("loading configuration")?;
+    let mut cfg = config::load_or_create(config::CONFIG_PATH).context("loading configuration")?;
 
-    logging::init(&cfg.logging.level, &cfg.logging.log_file)
-        .context("initialising logging")?;
+    logging::init(&cfg.logging.level, &cfg.logging.log_file).context("initialising logging")?;
 
     tracing::info!("rustylight-server starting");
 
-    config::ensure_psk(&mut cfg, config::CONFIG_PATH)
-        .context("ensuring PSK is set")?;
+    config::ensure_psk(&mut cfg, config::CONFIG_PATH).context("ensuring PSK is set")?;
 
     let psk_bytes = config::decode_psk(&cfg).context("decoding PSK")?;
 

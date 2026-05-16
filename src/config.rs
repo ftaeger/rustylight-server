@@ -78,8 +78,8 @@ impl Default for LoggingConfig {
 
 pub fn load_or_create(path: &str) -> Result<Config> {
     if Path::new(path).exists() {
-        let raw = std::fs::read_to_string(path)
-            .with_context(|| format!("reading config at {path}"))?;
+        let raw =
+            std::fs::read_to_string(path).with_context(|| format!("reading config at {path}"))?;
         let cfg: Config = toml::from_str(&raw).context("parsing config TOML")?;
         Ok(cfg)
     } else {
@@ -96,7 +96,9 @@ pub fn ensure_psk(cfg: &mut Config, path: &str) -> Result<()> {
 }
 
 pub fn decode_psk(cfg: &Config) -> Result<Vec<u8>> {
-    URL_SAFE.decode(&cfg.auth.psk).context("decoding PSK from base64url")
+    URL_SAFE
+        .decode(&cfg.auth.psk)
+        .context("decoding PSK from base64url")
 }
 
 fn save(cfg: &Config, path: &str) -> Result<()> {

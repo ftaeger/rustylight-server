@@ -27,7 +27,15 @@ pub fn build_report(state: &LightState) -> [u8; REPORT_SIZE] {
             write_step(&mut report, 0, state.r, state.g, state.b, on_ticks, 0);
             write_step(&mut report, 1, r2, g2, b2, off_ticks, 0);
         } else {
-            write_step(&mut report, 0, state.r, state.g, state.b, on_ticks, off_ticks);
+            write_step(
+                &mut report,
+                0,
+                state.r,
+                state.g,
+                state.b,
+                on_ticks,
+                off_ticks,
+            );
         }
     } else {
         write_step(&mut report, 0, state.r, state.g, state.b, 0xFFFF, 0);
@@ -48,7 +56,7 @@ fn write_step(
     off_ticks: u16,
 ) {
     let base = step * STEP_SIZE;
-    report[base]     = r;
+    report[base] = r;
     report[base + 1] = g;
     report[base + 2] = b;
     report[base + 3] = (on_ticks >> 8) as u8;
@@ -71,7 +79,14 @@ mod tests {
 
     #[test]
     fn steady_red_sets_step0_color() {
-        let state = LightState { on: true, r: 255, g: 0, b: 0, blink: false, ..Default::default() };
+        let state = LightState {
+            on: true,
+            r: 255,
+            g: 0,
+            b: 0,
+            blink: false,
+            ..Default::default()
+        };
         let report = build_report(&state);
         assert_eq!(report[0], 255);
         assert_eq!(report[1], 0);
@@ -84,7 +99,10 @@ mod tests {
 
     #[test]
     fn off_state_all_zeros_except_keepalive() {
-        let state = LightState { on: false, ..Default::default() };
+        let state = LightState {
+            on: false,
+            ..Default::default()
+        };
         let report = build_report(&state);
         assert_eq!(report[0], 0);
         assert_eq!(report[1], 0);
@@ -95,8 +113,13 @@ mod tests {
     #[test]
     fn blink_color_to_off_sets_on_off_timing() {
         let state = LightState {
-            on: true, r: 0, g: 255, b: 0,
-            blink: true, blink_on_ms: Some(500), blink_off_ms: Some(300),
+            on: true,
+            r: 0,
+            g: 255,
+            b: 0,
+            blink: true,
+            blink_on_ms: Some(500),
+            blink_off_ms: Some(300),
             ..Default::default()
         };
         let report = build_report(&state);
@@ -109,9 +132,16 @@ mod tests {
     #[test]
     fn blink_two_colors_sets_step1_color() {
         let state = LightState {
-            on: true, r: 255, g: 0, b: 0,
-            blink: true, blink_on_ms: Some(500), blink_off_ms: Some(500),
-            r2: Some(0), g2: Some(0), b2: Some(255),
+            on: true,
+            r: 255,
+            g: 0,
+            b: 0,
+            blink: true,
+            blink_on_ms: Some(500),
+            blink_off_ms: Some(500),
+            r2: Some(0),
+            g2: Some(0),
+            b2: Some(255),
         };
         let report = build_report(&state);
         assert_eq!(report[0], 255);

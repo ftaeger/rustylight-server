@@ -4,10 +4,10 @@ use rcgen::{CertificateParams, KeyPair, PKCS_ECDSA_P256_SHA256};
 use std::path::Path;
 
 pub fn generate_self_signed() -> Result<(String, String)> {
-    let key_pair = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256)
-        .context("generating ECC key pair")?;
-    let mut params = CertificateParams::new(vec!["rustylight".to_owned()])
-        .context("creating cert params")?;
+    let key_pair =
+        KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).context("generating ECC key pair")?;
+    let mut params =
+        CertificateParams::new(vec!["rustylight".to_owned()]).context("creating cert params")?;
     params.not_after = time::OffsetDateTime::now_utc()
         .checked_add(time::Duration::days(3650))
         .context("computing cert expiry")?;
@@ -19,12 +19,11 @@ pub fn load_or_generate(cert_path: &str, key_path: &str) -> Result<()> {
     let cert_missing = !Path::new(cert_path).exists();
     let key_missing = !Path::new(key_path).exists();
     if cert_missing || key_missing {
-        let (cert_pem, key_pem) = generate_self_signed()
-            .context("generating self-signed TLS certificate")?;
+        let (cert_pem, key_pem) =
+            generate_self_signed().context("generating self-signed TLS certificate")?;
         std::fs::write(cert_path, cert_pem)
             .with_context(|| format!("writing cert to {cert_path}"))?;
-        std::fs::write(key_path, key_pem)
-            .with_context(|| format!("writing key to {key_path}"))?;
+        std::fs::write(key_path, key_pem).with_context(|| format!("writing key to {key_path}"))?;
         tracing::info!("generated self-signed TLS certificate at {cert_path}");
     }
     Ok(())

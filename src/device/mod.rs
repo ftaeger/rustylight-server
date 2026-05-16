@@ -4,7 +4,9 @@ pub mod report;
 
 use thiserror::Error;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq, utoipa::ToSchema)]
+#[derive(
+    Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq, utoipa::ToSchema,
+)]
 pub struct LightState {
     pub on: bool,
     pub r: u8,
@@ -77,7 +79,14 @@ mod tests {
 
     #[test]
     fn light_state_serialises_without_blink_fields_when_not_blinking() {
-        let state = LightState { on: true, r: 255, g: 0, b: 0, blink: false, ..Default::default() };
+        let state = LightState {
+            on: true,
+            r: 255,
+            g: 0,
+            b: 0,
+            blink: false,
+            ..Default::default()
+        };
         let json = serde_json::to_value(&state).unwrap();
         assert!(json.get("blink_on_ms").is_none());
         assert!(json.get("r2").is_none());
@@ -86,9 +95,16 @@ mod tests {
     #[test]
     fn light_state_serialises_blink_fields_when_blinking() {
         let state = LightState {
-            on: true, r: 255, g: 0, b: 0,
-            blink: true, blink_on_ms: Some(500), blink_off_ms: Some(300),
-            r2: Some(0), g2: Some(0), b2: Some(255),
+            on: true,
+            r: 255,
+            g: 0,
+            b: 0,
+            blink: true,
+            blink_on_ms: Some(500),
+            blink_off_ms: Some(300),
+            r2: Some(0),
+            g2: Some(0),
+            b2: Some(255),
         };
         let json = serde_json::to_value(&state).unwrap();
         assert_eq!(json["blink_on_ms"], 500);

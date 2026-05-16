@@ -23,7 +23,5 @@ pub fn build_router(state: AppState) -> Router {
 
     let swagger_routes = openapi::swagger_router();
 
-    Router::new()
-        .nest("/api", api_routes)
-        .merge(swagger_routes)
+    Router::new().nest("/api", api_routes).merge(swagger_routes)
 }
