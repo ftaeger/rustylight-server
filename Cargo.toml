@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 # HTTP server
 axum = { version = "0.7", features = ["json", "macros"] }
-axum-server = { version = "0.6", features = ["tls-rustls"] }
+axum-server = { version = "0.7", features = ["tls-rustls"] }
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.5", features = ["trace"] }
 
