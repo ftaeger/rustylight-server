@@ -14,14 +14,46 @@ pub struct KnownDevice {
 }
 
 pub const KNOWN_DEVICES: &[KnownDevice] = &[
-    KnownDevice { vid: 0x04D8, pid: 0xF848, variant: ModelVariant::UcOmega },
-    KnownDevice { vid: 0x04D8, pid: 0xF8F8, variant: ModelVariant::Uc },
-    KnownDevice { vid: 0x04D8, pid: 0x2013, variant: ModelVariant::Lync },
-    KnownDevice { vid: 0x04D8, pid: 0x2014, variant: ModelVariant::Lync },
-    KnownDevice { vid: 0x27BB, pid: 0x3BCA, variant: ModelVariant::Alpha },
-    KnownDevice { vid: 0x27BB, pid: 0x3BCB, variant: ModelVariant::Alpha },
-    KnownDevice { vid: 0x27BB, pid: 0x3BC8, variant: ModelVariant::Uc2 },
-    KnownDevice { vid: 0x27BB, pid: 0x3BC9, variant: ModelVariant::Uc2 },
+    KnownDevice {
+        vid: 0x04D8,
+        pid: 0xF848,
+        variant: ModelVariant::UcOmega,
+    },
+    KnownDevice {
+        vid: 0x04D8,
+        pid: 0xF8F8,
+        variant: ModelVariant::Uc,
+    },
+    KnownDevice {
+        vid: 0x04D8,
+        pid: 0x2013,
+        variant: ModelVariant::Lync,
+    },
+    KnownDevice {
+        vid: 0x04D8,
+        pid: 0x2014,
+        variant: ModelVariant::Lync,
+    },
+    KnownDevice {
+        vid: 0x27BB,
+        pid: 0x3BCA,
+        variant: ModelVariant::Alpha,
+    },
+    KnownDevice {
+        vid: 0x27BB,
+        pid: 0x3BCB,
+        variant: ModelVariant::Alpha,
+    },
+    KnownDevice {
+        vid: 0x27BB,
+        pid: 0x3BC8,
+        variant: ModelVariant::Uc2,
+    },
+    KnownDevice {
+        vid: 0x27BB,
+        pid: 0x3BC9,
+        variant: ModelVariant::Uc2,
+    },
 ];
 
 impl ModelVariant {
