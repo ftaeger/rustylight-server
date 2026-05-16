@@ -1,0 +1,21 @@
+[Unit]
+Description=Rustylight Busylight Controller
+After=network.target
+Documentation=https://github.com/rustylight/rustylight-server
+
+[Service]
+Type=simple
+User=rustylight
+Group=rustylight
+ExecStart=/usr/sbin/rustylight-server
+Restart=on-failure
+RestartSec=5s
+SupplementaryGroups=plugdev
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/rustylight /etc/rustylight
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
