@@ -19,6 +19,7 @@ pub fn current_unix_time() -> u64 {
         .as_secs()
 }
 
+#[allow(dead_code)]
 pub fn compute_signature(psk: &[u8], timestamp: &str, body: &[u8]) -> String {
     let mut mac = HmacSha256::new_from_slice(psk).expect("HMAC accepts any key size");
     mac.update(timestamp.as_bytes());
