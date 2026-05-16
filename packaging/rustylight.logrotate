@@ -1,0 +1,9 @@
+/var/log/rustylight/rustylight.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}

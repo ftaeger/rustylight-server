@@ -58,6 +58,32 @@ http-body-util = "0.1"
 bytes = "1"
 tempfile = "3"
 
+[package.metadata.deb]
+maintainer = "florian@taeger.cc"
+copyright = "2026, Florian Taeger"
+license-file = ["LICENSE", "0"]
+extended-description = "rustylight-server controls a Kuando Busylight via USB and exposes a TLS-encrypted REST API."
+depends = "$auto"
+section = "utility"
+priority = "optional"
+assets = [
+    ["target/release/rustylight-server", "usr/sbin/", "755"],
+    ["packaging/rustylight.service", "lib/systemd/system/rustylight.service", "644"],
+    ["packaging/rustylight.logrotate", "etc/logrotate.d/rustylight", "644"],
+]
+maintainer-scripts = "packaging/"
+systemd-units = { enable = true }
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/rustylight-server", dest = "/usr/sbin/rustylight-server", mode = "755" },
+    { source = "packaging/rustylight.service", dest = "/lib/systemd/system/rustylight.service", mode = "644" },
+    { source = "packaging/rustylight.logrotate", dest = "/etc/logrotate.d/rustylight", mode = "644" },
+]
+
+[package.metadata.generate-rpm.requires]
+systemd = "*"
+
 [profile.release]
 opt-level = 3
 strip = true

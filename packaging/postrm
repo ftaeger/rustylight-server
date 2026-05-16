@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+if [ "$1" = "remove" ]; then
+    systemctl disable rustylight.service || true
+fi
+if [ "$1" = "purge" ]; then
+    rm -rf /etc/rustylight /var/log/rustylight
+    if id -u rustylight >/dev/null 2>&1; then
+        userdel rustylight || true
+    fi
+fi
+systemctl daemon-reload || true

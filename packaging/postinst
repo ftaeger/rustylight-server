@@ -1,0 +1,40 @@
+#!/bin/sh
+set -e
+
+# Create service user
+if ! id -u rustylight >/dev/null 2>&1; then
+    useradd --system --no-create-home --shell /usr/sbin/nologin rustylight
+fi
+
+# Add to plugdev for USB HID access
+if getent group plugdev >/dev/null 2>&1; then
+    usermod -aG plugdev rustylight
+fi
+
+# Create directories
+install -d -o rustylight -g rustylight -m 750 /etc/rustylight
+install -d -o rustylight -g rustylight -m 750 /var/log/rustylight
+
+# Create default config if not present
+if [ ! -f /etc/rustylight/rustylight.conf ]; then
+    cat > /etc/rustylight/rustylight.conf <<'EOF'
+[server]
+port = 8443
+
+[tls]
+cert_file = "/etc/rustylight/tls.crt"
+key_file  = "/etc/rustylight/tls.key"
+
+[auth]
+psk = ""
+
+[logging]
+level    = "info"
+log_file = "/var/log/rustylight/rustylight.log"
+EOF
+    chown rustylight:rustylight /etc/rustylight/rustylight.conf
+    chmod 600 /etc/rustylight/rustylight.conf
+fi
+
+systemctl daemon-reload
+systemctl enable --now rustylight.service || true
