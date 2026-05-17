@@ -14,10 +14,8 @@ use crate::device::LightState;
         version = "0.1.0",
         description = "REST API for controlling a Kuando Busylight USB device.\n\n\
             ## Authentication\n\
-            Every `/api/light` request requires two headers:\n\
-            - `X-Timestamp`: Unix timestamp (seconds, UTC)\n\
-            - `X-Signature`: `HMAC-SHA256(psk_bytes, timestamp_string + request_body)` as lowercase hex\n\n\
-            The server rejects requests with timestamps outside ±30 seconds of server time."
+            Every `/api/light` request requires an `X-Api-Key` header containing \
+            the PSK from `/etc/rustylight/rustylight.conf`."
     )
 )]
 pub struct ApiDoc;
