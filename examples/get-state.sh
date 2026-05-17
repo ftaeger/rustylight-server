@@ -7,7 +7,7 @@
 # Options:
 #   -h HOST   Server hostname or IP  (default: localhost)
 #   -p PORT   Server port            (default: 8443)
-#   -k PSK    Base64URL PSK          (default: $RUSTYLIGHT_PSK env var)
+#   -k PSK    API key                (default: $RUSTYLIGHT_PSK env var)
 #
 # Examples:
 #   RUSTYLIGHT_PSK=<psk> ./get-state.sh
@@ -40,27 +40,12 @@ if [[ -z "$PSK" ]]; then
   exit 1
 fi
 
-TIMESTAMP="$(date +%s)"
-
-# GET requests sign over timestamp + empty body
-PSK_HEX="$(printf '%s' "$PSK" \
-  | tr -- '-_' '+/' \
-  | openssl base64 -d -A \
-  | od -A n -t x1 \
-  | tr -d ' \n')"
-
-SIG="$(printf '%s' "$TIMESTAMP" \
-  | openssl dgst -sha256 -mac HMAC -macopt "hexkey:${PSK_HEX}" \
-  | awk '{print $2}')"
-
 RESPONSE="$(curl --silent --show-error \
   --insecure \
   --request GET \
   --url "https://${HOST}:${PORT}/api/light" \
-  --header "X-Timestamp: ${TIMESTAMP}" \
-  --header "X-Signature: ${SIG}")"
+  --header "X-Api-Key: ${PSK}")"
 
-# Pretty-print if jq is available, otherwise raw JSON
 if command -v jq &>/dev/null; then
   printf '%s\n' "$RESPONSE" | jq .
 else
