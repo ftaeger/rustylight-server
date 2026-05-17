@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use base64::{engine::general_purpose::URL_SAFE, Engine};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -84,11 +83,6 @@ pub fn ensure_psk(cfg: &mut Config, path: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn decode_psk(cfg: &Config) -> Result<Vec<u8>> {
-    URL_SAFE
-        .decode(&cfg.auth.psk)
-        .context("decoding PSK from base64url")
-}
 
 fn save(cfg: &Config, path: &str) -> Result<()> {
     let content = toml::to_string_pretty(cfg).context("serialising config")?;
@@ -99,7 +93,7 @@ fn save(cfg: &Config, path: &str) -> Result<()> {
 pub fn generate_psk() -> String {
     let mut bytes = [0u8; 32];
     rand::thread_rng().fill_bytes(&mut bytes);
-    URL_SAFE.encode(bytes)
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 #[cfg(test)]
@@ -150,6 +144,6 @@ log_file = "/tmp/rustylight.log"
     fn generates_non_empty_psk() {
         let psk = generate_psk();
         assert!(!psk.is_empty());
-        assert!(URL_SAFE.decode(&psk).is_ok());
+        assert_eq!(psk.len(), 64);
     }
 }

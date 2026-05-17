@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct AppState {
-    pub psk: Arc<Vec<u8>>,
+    pub psk: Arc<String>,
     pub shared: Arc<Mutex<SharedState>>,
 }
 
