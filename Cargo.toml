@@ -59,7 +59,7 @@ bytes = "1"
 tempfile = "3"
 
 [package.metadata.deb]
-maintainer = "florian@taeger.cc"
+maintainer = "ftaeger@users.noreply.github.com"
 copyright = "2026, Florian Taeger"
 license-file = ["LICENSE", "0"]
 extended-description = "rustylight-server controls a Kuando Busylight via USB and exposes a TLS-encrypted REST API."
