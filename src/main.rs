@@ -21,8 +21,6 @@ async fn main() -> Result<()> {
 
     config::ensure_psk(&mut cfg, config::CONFIG_PATH).context("ensuring PSK is set")?;
 
-    let psk_bytes = config::decode_psk(&cfg).context("decoding PSK")?;
-
     tls::load_or_generate(&cfg.tls.cert_file, &cfg.tls.key_file)
         .context("ensuring TLS certificate")?;
 
@@ -30,7 +28,7 @@ async fn main() -> Result<()> {
     manager::spawn_usb_manager(Arc::clone(&shared));
 
     let state = api::AppState {
-        psk: Arc::new(psk_bytes),
+        psk: Arc::new(cfg.auth.psk.clone()),
         shared: Arc::clone(&shared),
     };
 
