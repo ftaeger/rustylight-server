@@ -83,7 +83,6 @@ pub fn ensure_psk(cfg: &mut Config, path: &str) -> Result<()> {
     Ok(())
 }
 
-
 fn save(cfg: &Config, path: &str) -> Result<()> {
     let content = toml::to_string_pretty(cfg).context("serialising config")?;
     std::fs::write(path, content).with_context(|| format!("writing config to {path}"))?;
