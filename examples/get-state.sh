@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Read the current light state from rustylight-server and print it.
+#
+# Usage:
+#   ./get-state.sh [OPTIONS]
+#
+# Options:
+#   -h HOST   Server hostname or IP  (default: localhost)
+#   -p PORT   Server port            (default: 8443)
+#   -k PSK    Base64URL PSK          (default: $RUSTYLIGHT_PSK env var)
+#
+# Examples:
+#   RUSTYLIGHT_PSK=<psk> ./get-state.sh
+#   RUSTYLIGHT_PSK=<psk> ./get-state.sh -h 192.168.1.10 -p 8443
+
+set -euo pipefail
+
+HOST="localhost"
+PORT="8443"
+PSK="${RUSTYLIGHT_PSK:-}"
+
+usage() {
+  sed -n '3,16p' "$0" | sed 's/^# \?//'
+  exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h) HOST="$2"; shift 2 ;;
+    -p) PORT="$2"; shift 2 ;;
+    -k) PSK="$2"; shift 2 ;;
+    --) shift; break ;;
+    -*) echo "Unknown option: $1" >&2; usage ;;
+    *) break ;;
+  esac
+done
+
+if [[ -z "$PSK" ]]; then
+  echo "Error: PSK not set. Use -k <psk> or set RUSTYLIGHT_PSK." >&2
+  exit 1
+fi
+
+TIMESTAMP="$(date +%s)"
+
+# GET requests sign over timestamp + empty body
+PSK_HEX="$(printf '%s' "$PSK" \
+  | tr -- '-_' '+/' \
+  | openssl base64 -d -A \
+  | od -A n -t x1 \
+  | tr -d ' \n')"
+
+SIG="$(printf '%s' "$TIMESTAMP" \
+  | openssl dgst -sha256 -mac HMAC -macopt "hexkey:${PSK_HEX}" \
+  | awk '{print $2}')"
+
+RESPONSE="$(curl --silent --show-error \
+  --insecure \
+  --request GET \
+  --url "https://${HOST}:${PORT}/api/light" \
+  --header "X-Timestamp: ${TIMESTAMP}" \
+  --header "X-Signature: ${SIG}")"
+
+# Pretty-print if jq is available, otherwise raw JSON
+if command -v jq &>/dev/null; then
+  printf '%s\n' "$RESPONSE" | jq .
+else
+  printf '%s\n' "$RESPONSE"
+fi
