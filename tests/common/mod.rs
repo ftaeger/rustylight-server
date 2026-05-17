@@ -19,6 +19,7 @@ pub fn make_app(connected: bool) -> axum::Router {
     build_router(state)
 }
 
+#[allow(dead_code)]
 pub fn auth_headers() -> Vec<(&'static str, String)> {
     vec![("X-Api-Key", test_psk())]
 }
