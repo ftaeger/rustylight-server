@@ -1,6 +1,6 @@
 # rustylight-server API Reference
 
-HTTP REST API for controlling a Kuando Busylight USB device over HTTPS with HMAC-SHA256 authentication.
+HTTP REST API for controlling a Kuando Busylight USB device over HTTPS with X-Api-Key authentication.
 
 ---
 
@@ -16,93 +16,49 @@ TLS certificates are auto-generated on first start and stored at the paths confi
 
 ## Authentication
 
-Every `/api/light` request requires two headers:
+Every `/api/light` request requires one header:
 
 | Header | Value |
 |--------|-------|
-| `X-Timestamp` | Current Unix timestamp (seconds, UTC) as a decimal string |
-| `X-Signature` | Lowercase hex HMAC-SHA256 signature (see below) |
+| `X-Api-Key` | The exact value of `auth.psk` from the config file |
 
-### Signature computation
+### Example (curl)
 
+```bash
+curl --insecure \
+  -H "X-Api-Key: <your-psk>" \
+  https://localhost:8443/api/light
 ```
-signature = hex(HMAC-SHA256(
-    key    = base64url_decode(psk),
-    message = timestamp_string + request_body_bytes
-))
-```
-
-- **`psk`** — the raw value of `auth.psk` from the config file (Base64URL-encoded 32-byte key)
-- **`timestamp_string`** — the exact string sent in `X-Timestamp`
-- **`request_body_bytes`** — the raw UTF-8 JSON body for POST; **empty string** (`""`) for GET
-
-The server rejects requests where the timestamp differs from the server clock by more than **30 seconds**. When a request is rejected for this reason the response includes an `X-Server-Time` header with the server's current Unix timestamp so the client can correct its clock offset.
 
 ### Example (Python)
 
 ```python
-import hmac, hashlib, base64, time, json
+import requests
 
-PSK_B64 = "your_base64url_encoded_psk_here"
-psk_bytes = base64.urlsafe_b64decode(PSK_B64 + "==")
-
-def sign(timestamp: str, body: bytes = b"") -> str:
-    msg = timestamp.encode() + body
-    return hmac.new(psk_bytes, msg, hashlib.sha256).hexdigest()
-
-ts = str(int(time.time()))
-headers_get = {
-    "X-Timestamp": ts,
-    "X-Signature": sign(ts),
-}
-
-body = json.dumps({"on": True, "r": 255, "g": 0, "b": 0}).encode()
-ts2 = str(int(time.time()))
-headers_post = {
-    "X-Timestamp": ts2,
-    "X-Signature": sign(ts2, body),
-    "Content-Type": "application/json",
-}
+PSK = "your_psk_here"
+resp = requests.get(
+    "https://localhost:8443/api/light",
+    headers={"X-Api-Key": PSK},
+    verify=False,
+)
 ```
 
 ### Example (JavaScript / Node.js)
 
 ```js
-import { createHmac } from "node:crypto";
-
-const pskBytes = Buffer.from(process.env.PSK, "base64url");
-
-function sign(timestamp, body = Buffer.alloc(0)) {
-  return createHmac("sha256", pskBytes)
-    .update(timestamp)
-    .update(body)
-    .digest("hex");
-}
-
-const ts = String(Math.floor(Date.now() / 1000));
-const headersGet = { "X-Timestamp": ts, "X-Signature": sign(ts) };
-
-const bodyBuf = Buffer.from(JSON.stringify({ on: true, r: 255, g: 0, b: 0 }));
-const ts2 = String(Math.floor(Date.now() / 1000));
-const headersPost = {
-  "X-Timestamp": ts2,
-  "X-Signature": sign(ts2, bodyBuf),
-  "Content-Type": "application/json",
-};
+const resp = await fetch("https://localhost:8443/api/light", {
+  headers: { "X-Api-Key": process.env.PSK },
+});
 ```
 
 ### Example (Rust)
 
 ```rust
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
-
-fn sign(psk: &[u8], timestamp: &str, body: &[u8]) -> String {
-    let mut mac = Hmac::<Sha256>::new_from_slice(psk).unwrap();
-    mac.update(timestamp.as_bytes());
-    mac.update(body);
-    hex::encode(mac.finalize().into_bytes())
-}
+let resp = client
+    .get("https://localhost:8443/api/light")
+    .header("X-Api-Key", &psk)
+    .send()
+    .await?;
 ```
 
 ---
@@ -150,7 +106,7 @@ Optional fields (`blink_on_ms`, `blink_off_ms`, `r2`, `g2`, `b2`) are **omitted*
 
 Returns the current light state and device connection status.
 
-**Request headers**: `X-Timestamp`, `X-Signature` (see Authentication)
+**Request headers**: `X-Api-Key` (see Authentication)
 
 **Request body**: none
 
@@ -188,9 +144,9 @@ Returns the current light state and device connection status.
 
 ### POST /api/light
 
-Sets a new light state. The body bytes are incorporated into the HMAC signature.
+Sets a new light state.
 
-**Request headers**: `X-Timestamp`, `X-Signature`, `Content-Type: application/json`
+**Request headers**: `X-Api-Key`, `Content-Type: application/json`
 
 **Request body**: a `LightState` JSON object
 
@@ -223,8 +179,7 @@ OpenAPI 3.0 specification as JSON. No authentication required. Useful for genera
 POST /api/light HTTP/1.1
 Host: busylight.local:8443
 Content-Type: application/json
-X-Timestamp: 1747480000
-X-Signature: <computed>
+X-Api-Key: <your-psk>
 
 {"on": true, "r": 255, "g": 0, "b": 0}
 ```
@@ -235,8 +190,7 @@ X-Signature: <computed>
 POST /api/light HTTP/1.1
 Host: busylight.local:8443
 Content-Type: application/json
-X-Timestamp: 1747480000
-X-Signature: <computed>
+X-Api-Key: <your-psk>
 
 {"on": false, "r": 0, "g": 0, "b": 0}
 ```
@@ -273,8 +227,7 @@ POST /api/light HTTP/1.1
 ```http
 GET /api/light HTTP/1.1
 Host: busylight.local:8443
-X-Timestamp: 1747480000
-X-Signature: <computed, body is empty string>
+X-Api-Key: <your-psk>
 ```
 
 ---
@@ -285,14 +238,11 @@ All error responses use `Content-Type: application/json` and body `{"error": "<m
 
 | HTTP Status | Error message | Cause |
 |-------------|---------------|-------|
-| 400 | `invalid JSON: <detail>` | POST body is not valid JSON or a field has the wrong type |
-| 400 | `blink_on_ms must be 50–10000, got <n>` | `blink_on_ms` out of range while `blink` is `true` |
-| 400 | `blink_off_ms must be 50–10000, got <n>` | `blink_off_ms` out of range while `blink` is `true` |
-| 401 | `missing header: X-Timestamp` | `X-Timestamp` header absent |
-| 401 | `missing header: X-Signature` | `X-Signature` header absent |
-| 401 | `X-Timestamp must be a unix timestamp` | `X-Timestamp` value is not a decimal integer |
-| 403 | `timestamp outside ±30s window` | Request timestamp differs from server clock by more than 30 s. Response also includes `X-Server-Time: <unix_ts>` header |
-| 403 | `invalid signature` | HMAC signature does not match |
+| 400 | `invalid JSON: <detail>` | POST body is not valid JSON or wrong type |
+| 400 | `blink_on_ms must be 50–10000, got <n>` | Out of range while `blink` is `true` |
+| 400 | `blink_off_ms must be 50–10000, got <n>` | Out of range while `blink` is `true` |
+| 401 | `missing header: X-Api-Key` | `X-Api-Key` header absent |
+| 401 | `invalid API key` | `X-Api-Key` value does not match PSK |
 | 503 | `Busylight not connected` | No compatible USB device detected |
 
 ---
@@ -345,11 +295,7 @@ The USB manager polls every 2 seconds. The `connected` field in the GET response
 
 ## Quick Start Checklist for Client Developers
 
-1. Retrieve the PSK from `/etc/rustylight/rustylight.conf` → `auth.psk` (Base64URL string).
+1. Retrieve the PSK from `/etc/rustylight/rustylight.conf` → `auth.psk`.
 2. Configure your HTTP client to accept self-signed TLS certificates, or import the server's certificate.
-3. For every request:
-   - Take the current Unix timestamp (integer seconds).
-   - Compute HMAC-SHA256 over `(timestamp_string + request_body_bytes)` using the decoded PSK as the key.
-   - Send `X-Timestamp` and `X-Signature` headers.
-4. If you receive a 403 with `timestamp outside ±30s window`, read the `X-Server-Time` response header and adjust your clock offset.
-5. If you receive a 503, the USB device is not plugged in — retry after reconnecting the hardware.
+3. For every request, send `X-Api-Key: <psk>` as a header.
+4. If you receive a 503, the USB device is not plugged in — retry after reconnecting.
