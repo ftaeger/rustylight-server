@@ -48,7 +48,7 @@ utoipa = { version = "4", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "7", features = ["axum"] }
 
 # Utilities
-rand = "0.8"
+rand = "0.10"
 thiserror = "1"
 anyhow = "1"
 
