@@ -29,10 +29,21 @@ fn run_loop(shared: Arc<Mutex<SharedState>>) {
             };
 
             let report = build_report(&state);
-            if dev.write(&report).is_err() {
-                tracing::info!("Busylight disconnected");
-                device = None;
-                shared.lock().unwrap().connected = false;
+            tracing::trace!(
+                "HID write: on={} r={} g={} b={} | report[0..8]={:02x?}",
+                state.on,
+                state.r,
+                state.g,
+                state.b,
+                &report[..8],
+            );
+            match dev.write(&report) {
+                Ok(n) => tracing::trace!("HID write OK: {n} bytes written"),
+                Err(e) => {
+                    tracing::info!("Busylight disconnected: {e}");
+                    device = None;
+                    shared.lock().unwrap().connected = false;
+                }
             }
         }
 
