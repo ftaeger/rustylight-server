@@ -23,7 +23,7 @@ hidapi = "2.6"
 
 # TLS + cert generation
 rustls = "0.23"
-rcgen = { version = "0.13", features = ["pem"] }
+rcgen = { version = "0.14", features = ["pem"] }
 rustls-pemfile = "2"
 time = "0.3"
 
