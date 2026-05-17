@@ -1,4 +1,5 @@
 use axum::{
+    body::Bytes,
     extract::{ConnectInfo, State},
     http::StatusCode,
     response::IntoResponse,
@@ -30,13 +31,11 @@ pub fn validate_post_body(state: &LightState) -> Result<(), String> {
     path = "/api/light",
     responses(
         (status = 200, description = "Current busylight state"),
-        (status = 401, description = "Missing auth headers"),
-        (status = 403, description = "Invalid signature or timestamp"),
+        (status = 401, description = "Missing or invalid API key"),
         (status = 503, description = "Busylight not connected"),
     ),
     params(
-        ("X-Timestamp" = String, Header, description = "Unix timestamp (seconds UTC)"),
-        ("X-Signature" = String, Header, description = "HMAC-SHA256(psk, timestamp+body) as lowercase hex"),
+        ("X-Api-Key" = String, Header, description = "Pre-shared API key from config"),
     )
 )]
 pub async fn get_light(
@@ -61,21 +60,20 @@ pub async fn get_light(
     responses(
         (status = 200, description = "State applied"),
         (status = 400, description = "Invalid request body"),
-        (status = 401, description = "Missing auth headers"),
-        (status = 403, description = "Invalid signature or timestamp"),
+        (status = 401, description = "Missing or invalid API key"),
         (status = 503, description = "Busylight not connected"),
     ),
     params(
-        ("X-Timestamp" = String, Header, description = "Unix timestamp (seconds UTC)"),
-        ("X-Signature" = String, Header, description = "HMAC-SHA256(psk, timestamp+body) as lowercase hex"),
+        ("X-Api-Key" = String, Header, description = "Pre-shared API key from config"),
     )
 )]
 pub async fn post_light(
     addr: Option<ConnectInfo<SocketAddr>>,
     State(state): State<AppState>,
-    AuthGuard(body_bytes): AuthGuard,
+    _auth: AuthGuard,
+    body: Bytes,
 ) -> impl IntoResponse {
-    let light_state: LightState = match serde_json::from_slice(&body_bytes) {
+    let light_state: LightState = match serde_json::from_slice(&body) {
         Ok(s) => s,
         Err(e) => {
             return (
