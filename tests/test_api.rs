@@ -13,7 +13,7 @@ async fn body_json(resp: axum::response::Response) -> serde_json::Value {
 #[tokio::test]
 async fn get_light_returns_connected_false_when_device_absent() {
     let app = common::make_app(false);
-    let headers = common::auth_headers(b"");
+    let headers = common::auth_headers();
     let mut builder = Request::builder().method("GET").uri("/api/light");
     for (k, v) in &headers {
         builder = builder.header(*k, v);
@@ -31,8 +31,7 @@ async fn get_light_returns_connected_false_when_device_absent() {
 async fn post_light_returns_503_when_device_not_connected() {
     let app = common::make_app(false);
     let body = serde_json::json!({"on": true, "r": 255, "g": 0, "b": 0}).to_string();
-    let body_bytes = body.as_bytes().to_vec();
-    let headers = common::auth_headers(&body_bytes);
+    let headers = common::auth_headers();
     let mut builder = Request::builder()
         .method("POST")
         .uri("/api/light")
@@ -51,8 +50,7 @@ async fn post_light_returns_503_when_device_not_connected() {
 async fn post_light_returns_200_when_device_connected() {
     let app = common::make_app(true);
     let body = serde_json::json!({"on": true, "r": 0, "g": 255, "b": 0}).to_string();
-    let body_bytes = body.as_bytes().to_vec();
-    let headers = common::auth_headers(&body_bytes);
+    let headers = common::auth_headers();
     let mut builder = Request::builder()
         .method("POST")
         .uri("/api/light")
@@ -75,8 +73,7 @@ async fn post_light_returns_400_for_invalid_blink_ms() {
         "blink": true, "blink_on_ms": 10, "blink_off_ms": 500
     })
     .to_string();
-    let body_bytes = body.as_bytes().to_vec();
-    let headers = common::auth_headers(&body_bytes);
+    let headers = common::auth_headers();
     let mut builder = Request::builder()
         .method("POST")
         .uri("/api/light")
@@ -95,7 +92,7 @@ async fn post_light_returns_400_for_invalid_blink_ms() {
 async fn post_light_returns_400_for_malformed_json() {
     let app = common::make_app(true);
     let body = "not json at all";
-    let headers = common::auth_headers(body.as_bytes());
+    let headers = common::auth_headers();
     let mut builder = Request::builder()
         .method("POST")
         .uri("/api/light")
