@@ -46,6 +46,11 @@ pub const KNOWN_DEVICES: &[KnownDevice] = &[
     },
     KnownDevice {
         vid: 0x27BB,
+        pid: 0x3BCD,
+        variant: ModelVariant::Alpha,
+    },
+    KnownDevice {
+        vid: 0x27BB,
         pid: 0x3BC8,
         variant: ModelVariant::Uc2,
     },
