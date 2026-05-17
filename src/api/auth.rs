@@ -1,82 +1,27 @@
 use axum::{
-    body::Bytes,
-    extract::{FromRequest, Request},
-    http::StatusCode,
+    extract::FromRequestParts,
+    http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
 };
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
-use std::time::{SystemTime, UNIX_EPOCH};
 
-type HmacSha256 = Hmac<Sha256>;
-
-pub const TIMESTAMP_WINDOW_SECS: u64 = 30;
-
-pub fn current_unix_time() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-}
-
-#[allow(dead_code)]
-pub fn compute_signature(psk: &[u8], timestamp: &str, body: &[u8]) -> String {
-    let mut mac = HmacSha256::new_from_slice(psk).expect("HMAC accepts any key size");
-    mac.update(timestamp.as_bytes());
-    mac.update(body);
-    hex::encode(mac.finalize().into_bytes())
-}
-
-pub fn verify_signature(psk: &[u8], timestamp: &str, body: &[u8], provided_hex: &str) -> bool {
-    let Ok(provided_bytes) = hex::decode(provided_hex) else {
-        return false;
-    };
-    let mut mac = HmacSha256::new_from_slice(psk).expect("HMAC accepts any key size");
-    mac.update(timestamp.as_bytes());
-    mac.update(body);
-    mac.verify_slice(&provided_bytes).is_ok()
-}
-
-pub fn timestamp_in_window(ts: u64) -> bool {
-    let now = current_unix_time();
-    now.abs_diff(ts) <= TIMESTAMP_WINDOW_SECS
-}
-
-pub struct AuthGuard(pub Bytes);
+pub struct AuthGuard;
 
 pub enum AuthError {
-    MissingHeader(&'static str),
-    NonNumericTimestamp,
-    TimestampOutOfWindow { server_time: u64 },
-    InvalidSignature,
+    MissingKey,
+    InvalidKey,
 }
 
 impl IntoResponse for AuthError {
     fn into_response(self) -> Response {
         match self {
-            AuthError::MissingHeader(h) => (
+            AuthError::MissingKey => (
                 StatusCode::UNAUTHORIZED,
-                axum::Json(serde_json::json!({"error": format!("missing header: {h}")})),
+                axum::Json(serde_json::json!({"error": "missing header: X-Api-Key"})),
             )
                 .into_response(),
-            AuthError::NonNumericTimestamp => (
+            AuthError::InvalidKey => (
                 StatusCode::UNAUTHORIZED,
-                axum::Json(serde_json::json!({"error": "X-Timestamp must be a unix timestamp"})),
-            )
-                .into_response(),
-            AuthError::TimestampOutOfWindow { server_time } => {
-                let mut resp = (
-                    StatusCode::FORBIDDEN,
-                    axum::Json(serde_json::json!({"error": "timestamp outside ±30s window"})),
-                )
-                    .into_response();
-                resp.headers_mut()
-                    .insert("X-Server-Time", server_time.to_string().parse().unwrap());
-                resp
-            }
-            AuthError::InvalidSignature => (
-                StatusCode::FORBIDDEN,
-                axum::Json(serde_json::json!({"error": "invalid signature"})),
+                axum::Json(serde_json::json!({"error": "invalid API key"})),
             )
                 .into_response(),
         }
@@ -84,51 +29,29 @@ impl IntoResponse for AuthError {
 }
 
 #[axum::async_trait]
-impl<S> FromRequest<S> for AuthGuard
+impl<S> FromRequestParts<S> for AuthGuard
 where
     S: Send + Sync,
     crate::api::AppState: axum::extract::FromRef<S>,
 {
     type Rejection = AuthError;
 
-    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         use axum::extract::FromRef;
         let app_state = crate::api::AppState::from_ref(state);
-        let psk = app_state.psk.as_ref();
 
-        let ts_header = req
-            .headers()
-            .get("X-Timestamp")
-            .ok_or(AuthError::MissingHeader("X-Timestamp"))?
+        let key = parts
+            .headers
+            .get("X-Api-Key")
+            .ok_or(AuthError::MissingKey)?
             .to_str()
-            .map_err(|_| AuthError::NonNumericTimestamp)?
-            .to_owned();
+            .map_err(|_| AuthError::InvalidKey)?;
 
-        let sig_header = req
-            .headers()
-            .get("X-Signature")
-            .ok_or(AuthError::MissingHeader("X-Signature"))?
-            .to_str()
-            .map_err(|_| AuthError::InvalidSignature)?
-            .to_owned();
-
-        let ts: u64 = ts_header
-            .parse()
-            .map_err(|_| AuthError::NonNumericTimestamp)?;
-
-        if !timestamp_in_window(ts) {
-            return Err(AuthError::TimestampOutOfWindow {
-                server_time: current_unix_time(),
-            });
+        if key != app_state.psk.as_str() {
+            return Err(AuthError::InvalidKey);
         }
 
-        let body = Bytes::from_request(req, state).await.unwrap_or_default();
-
-        if !verify_signature(psk, &ts_header, &body, &sig_header) {
-            return Err(AuthError::InvalidSignature);
-        }
-
-        Ok(AuthGuard(body))
+        Ok(AuthGuard)
     }
 }
 
@@ -136,36 +59,15 @@ where
 mod tests {
     use super::*;
 
-    fn psk() -> Vec<u8> {
-        b"test-psk-bytes-32-chars-xxxxxxxxx".to_vec()
+    #[test]
+    fn auth_error_missing_key_is_401() {
+        let resp = AuthError::MissingKey.into_response();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[test]
-    fn valid_signature_returns_ok() {
-        let ts = "1747394400";
-        let body = b"{}";
-        let sig = compute_signature(&psk(), ts, body);
-        assert!(verify_signature(&psk(), ts, body, &sig));
-    }
-
-    #[test]
-    fn wrong_signature_returns_false() {
-        let ts = "1747394400";
-        assert!(!verify_signature(&psk(), ts, b"{}", "deadbeef"));
-    }
-
-    #[test]
-    fn timestamp_within_window_is_ok() {
-        let now = current_unix_time();
-        assert!(timestamp_in_window(now));
-        assert!(timestamp_in_window(now + 29));
-        assert!(timestamp_in_window(now - 29));
-    }
-
-    #[test]
-    fn timestamp_outside_window_is_rejected() {
-        let now = current_unix_time();
-        assert!(!timestamp_in_window(now + 31));
-        assert!(!timestamp_in_window(now - 31));
+    fn auth_error_invalid_key_is_401() {
+        let resp = AuthError::InvalidKey.into_response();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
     }
 }
