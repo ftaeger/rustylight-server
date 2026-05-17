@@ -3,6 +3,7 @@ use axum::{
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
 };
+use subtle::ConstantTimeEq;
 
 pub struct AuthGuard;
 
@@ -47,7 +48,8 @@ where
             .to_str()
             .map_err(|_| AuthError::InvalidKey)?;
 
-        if key != app_state.psk.as_str() {
+        let key_matches: bool = key.as_bytes().ct_eq(app_state.psk.as_bytes()).into();
+        if !key_matches {
             return Err(AuthError::InvalidKey);
         }
 
