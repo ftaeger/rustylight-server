@@ -36,5 +36,7 @@ EOF
     chmod 600 /etc/rustylight/rustylight.conf
 fi
 
+udevadm control --reload-rules && udevadm trigger || true
+
 systemctl daemon-reload
 systemctl enable --now rustylight.service || true
