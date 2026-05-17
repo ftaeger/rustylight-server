@@ -29,7 +29,7 @@ time = "0.3"
 
 # Auth
 hmac = "0.12"
-sha2 = "0.10"
+sha2 = "0.11"
 hex = "0.4"
 base64 = { version = "0.22", features = [] }
 
