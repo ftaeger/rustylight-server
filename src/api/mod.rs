@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex};
 pub struct AppState {
     pub psk: Arc<String>,
     pub shared: Arc<Mutex<SharedState>>,
+    pub log_file: Arc<String>,
 }
 
 pub fn build_router(state: AppState) -> Router {
