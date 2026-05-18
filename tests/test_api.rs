@@ -208,3 +208,19 @@ async fn healthcheck_returns_503_when_log_not_writable() {
     assert_eq!(json["busylight_connected"], true);
     assert_eq!(json["log_writable"], false);
 }
+
+#[tokio::test]
+async fn get_version_old_path_returns_404() {
+    let app = common::make_app(false);
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/version")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
