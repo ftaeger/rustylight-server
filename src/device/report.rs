@@ -2,10 +2,10 @@ use crate::device::LightState;
 
 const NUM_STEPS: usize = 7;
 const STEP_SIZE: usize = 8;
+// Write buffer: 0x00 Report ID prefix at buf[0] + 64-byte payload.
+// Linux usbhid_output_report() strips buf[0] before USB transmission,
+// ensuring the device always receives exactly 64 bytes.
 const PAYLOAD_SIZE: usize = (NUM_STEPS + 1) * STEP_SIZE; // 64 bytes (7 steps + 8-byte footer)
-                                                         // Write buffer: 0x00 Report ID prefix at buf[0] + 64-byte payload.
-                                                         // Linux usbhid_output_report() strips buf[0] before USB transmission,
-                                                         // ensuring the device always receives exactly 64 bytes.
 const WRITE_SIZE: usize = PAYLOAD_SIZE + 1; // 65 bytes
 
 const FOOTER_BASE: usize = NUM_STEPS * STEP_SIZE; // 56
@@ -26,7 +26,7 @@ pub fn build_report(state: &LightState) -> [u8; WRITE_SIZE] {
         if state.blink {
             build_blink(p, state);
         } else {
-            write_step(p, 0, 0, 0, state.r, state.g, state.b, 0xFF, 0);
+            write_step(p, 0, 0, state.r, state.g, state.b, 0xFFFF, 0);
         }
     }
 
@@ -38,18 +38,18 @@ pub fn build_report(state: &LightState) -> [u8; WRITE_SIZE] {
 }
 
 fn build_blink(p: &mut [u8], state: &LightState) {
-    let on_ticks = (state.effective_blink_on_ms() / 10).min(254) as u8;
-    let off_ticks = (state.effective_blink_off_ms() / 10).min(255) as u8;
+    let on_ticks = state.effective_blink_on_ms() / 10;
+    let off_ticks = state.effective_blink_off_ms() / 10;
     let r2 = state.r2.unwrap_or(0);
     let g2 = state.g2.unwrap_or(0);
     let b2 = state.b2.unwrap_or(0);
 
     if r2 > 0 || g2 > 0 || b2 > 0 {
-        // Two-color: step 0 → step 1 → step 0 → ...
-        write_step(p, 0, 1, 0, state.r, state.g, state.b, on_ticks, 0);
-        write_step(p, 1, 0, 0, r2, g2, b2, off_ticks, 0);
+        // Two-color: step 0 plays once (repeat=1) then advances to step 1, which loops back
+        write_step(p, 0, 1, state.r, state.g, state.b, on_ticks, 0);
+        write_step(p, 1, 1, r2, g2, b2, off_ticks, 0);
     } else {
-        write_step(p, 0, 0, 0, state.r, state.g, state.b, on_ticks, off_ticks);
+        write_step(p, 0, 0, state.r, state.g, state.b, on_ticks, off_ticks);
     }
 }
 
@@ -57,23 +57,22 @@ fn build_blink(p: &mut [u8], state: &LightState) {
 fn write_step(
     p: &mut [u8],
     step: usize,
-    next: u8,
     repeat: u8,
     r: u8,
     g: u8,
     b: u8,
-    on: u8,
-    off: u8,
+    on_ticks: u16,
+    off_ticks: u16,
 ) {
     let base = step * STEP_SIZE;
-    p[base] = next;
-    p[base + 1] = repeat;
-    p[base + 2] = r;
-    p[base + 3] = g;
-    p[base + 4] = b;
-    p[base + 5] = on;
-    p[base + 6] = off;
-    p[base + 7] = 0; // audio (silent)
+    p[base] = repeat;
+    p[base + 1] = r;
+    p[base + 2] = g;
+    p[base + 3] = b;
+    p[base + 4] = (on_ticks >> 8) as u8;
+    p[base + 5] = (on_ticks & 0xFF) as u8;
+    p[base + 6] = (off_ticks >> 8) as u8;
+    p[base + 7] = (off_ticks & 0xFF) as u8;
 }
 
 #[cfg(test)]
@@ -124,18 +123,19 @@ mod tests {
         };
         let buf = build_report(&state);
         let p = payload(&buf);
-        assert_eq!(p[0], 0); // next
-        assert_eq!(p[1], 0); // repeat
-        assert_eq!(p[2], 255); // r
-        assert_eq!(p[3], 0); // g
-        assert_eq!(p[4], 0); // b
-        assert_eq!(p[5], 0xFF); // on (steady)
-        assert_eq!(p[6], 0); // off
-        assert_eq!(p[7], 0); // audio
+        // Step layout: [Repeat, R, G, B, OnHi, OnLo, OffHi, OffLo]
+        assert_eq!(p[0], 0x00); // repeat
+        assert_eq!(p[1], 255); // r
+        assert_eq!(p[2], 0); // g
+        assert_eq!(p[3], 0); // b
+        assert_eq!(p[4], 0xFF); // on_hi (0xFFFF steady)
+        assert_eq!(p[5], 0xFF); // on_lo
+        assert_eq!(p[6], 0); // off_hi
+        assert_eq!(p[7], 0); // off_lo
         assert_eq!(&p[8..FOOTER_BASE], &[0u8; FOOTER_BASE - 8]);
-        // 255(r)+255(on)+[footer 858] = 1368 = 0x0558
-        assert_eq!(p[FOOTER_BASE + 6], 0x05);
-        assert_eq!(p[FOOTER_BASE + 7], 0x58);
+        // 255(r) + 255(on_hi) + 255(on_lo) + 858(footer) = 1623 = 0x0657
+        assert_eq!(p[FOOTER_BASE + 6], 0x06);
+        assert_eq!(p[FOOTER_BASE + 7], 0x57);
     }
 
     #[test]
@@ -152,12 +152,15 @@ mod tests {
         };
         let buf = build_report(&state);
         let p = payload(&buf);
-        assert_eq!(p[0], 0); // next (loops to self)
-        assert_eq!(p[2], 0); // r
-        assert_eq!(p[3], 255); // g
-        assert_eq!(p[4], 0); // b
-        assert_eq!(p[5], 50); // on_ticks: 500/10 = 50
-        assert_eq!(p[6], 30); // off_ticks: 300/10 = 30
+        // Step layout: [Repeat, R, G, B, OnHi, OnLo, OffHi, OffLo]
+        assert_eq!(p[0], 0x00); // repeat=0 (loop)
+        assert_eq!(p[1], 0); // r
+        assert_eq!(p[2], 255); // g
+        assert_eq!(p[3], 0); // b
+        assert_eq!(p[4], 0x00); // on_hi: 500/10 = 50 = 0x0032
+        assert_eq!(p[5], 50); // on_lo
+        assert_eq!(p[6], 0x00); // off_hi: 300/10 = 30 = 0x001E
+        assert_eq!(p[7], 30); // off_lo
     }
 
     #[test]
@@ -176,17 +179,21 @@ mod tests {
         };
         let buf = build_report(&state);
         let p = payload(&buf);
-        // Step 0: advance to step 1 after on_ticks
-        assert_eq!(p[0], 1); // next → step 1
-        assert_eq!(p[2], 255); // r
-        assert_eq!(p[4], 0); // b
-        assert_eq!(p[5], 50); // on_ticks
-        assert_eq!(p[6], 0); // no off gap in step 0
-                             // Step 1: return to step 0 after off_ticks
-        assert_eq!(p[8], 0); // next → step 0
-        assert_eq!(p[10], 0); // r2
-        assert_eq!(p[11], 0); // g2
-        assert_eq!(p[12], 255); // b2
-        assert_eq!(p[13], 50); // off_ticks used as on time for step 1
+        // Step 0: primary color, plays once then advances to step 1
+        assert_eq!(p[0], 1); // repeat=1
+        assert_eq!(p[1], 255); // r
+        assert_eq!(p[2], 0); // g
+        assert_eq!(p[3], 0); // b
+        assert_eq!(p[4], 0x00); // on_hi: 50 = 0x0032
+        assert_eq!(p[5], 50); // on_lo
+        assert_eq!(p[6], 0); // off_hi
+        assert_eq!(p[7], 0); // off_lo (no gap between steps)
+                             // Step 1: secondary color, plays once then loops back
+        assert_eq!(p[8], 1); // repeat=1
+        assert_eq!(p[9], 0); // r2
+        assert_eq!(p[10], 0); // g2
+        assert_eq!(p[11], 255); // b2
+        assert_eq!(p[12], 0x00); // on_hi: 50 = 0x0032
+        assert_eq!(p[13], 50); // on_lo
     }
 }
