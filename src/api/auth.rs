@@ -29,7 +29,6 @@ impl IntoResponse for AuthError {
     }
 }
 
-#[axum::async_trait]
 impl<S> FromRequestParts<S> for AuthGuard
 where
     S: Send + Sync,
