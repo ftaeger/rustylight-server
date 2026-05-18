@@ -19,6 +19,7 @@ pub fn build_router(state: AppState) -> Router {
     let api_routes = Router::new()
         .route("/light", get(handlers::get_light))
         .route("/light", post(handlers::post_light))
+        .route("/version", get(handlers::get_version))
         .with_state(state);
 
     let swagger_routes = openapi::swagger_router();

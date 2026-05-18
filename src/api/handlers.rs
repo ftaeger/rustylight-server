@@ -7,6 +7,8 @@ use axum::{
 };
 use std::net::SocketAddr;
 
+use time::format_description::well_known::Rfc3339;
+
 use crate::{
     api::{auth::AuthGuard, AppState},
     device::LightState,
@@ -110,6 +112,29 @@ pub async fn post_light(
     shared.state_dirty = true;
 
     (StatusCode::OK, Json(serde_json::json!({"ok": true}))).into_response()
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct VersionResponse {
+    pub version: &'static str,
+    pub time: String,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/version",
+    responses(
+        (status = 200, description = "Server version and current UTC time", body = VersionResponse),
+    )
+)]
+pub async fn get_version() -> impl IntoResponse {
+    let time = time::OffsetDateTime::now_utc()
+        .format(&Rfc3339)
+        .unwrap_or_else(|_| "unknown".to_string());
+    Json(VersionResponse {
+        version: env!("CARGO_PKG_VERSION"),
+        time,
+    })
 }
 
 #[cfg(test)]
