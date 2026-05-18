@@ -1,6 +1,6 @@
 use axum::{
     body::Bytes,
-    extract::{ConnectInfo, State},
+    extract::{ConnectInfo, Extension, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -39,7 +39,7 @@ pub fn validate_post_body(state: &LightState) -> Result<(), String> {
     )
 )]
 pub async fn get_light(
-    addr: Option<ConnectInfo<SocketAddr>>,
+    addr: Option<Extension<ConnectInfo<SocketAddr>>>,
     State(state): State<AppState>,
     _auth: AuthGuard,
 ) -> impl IntoResponse {
@@ -68,7 +68,7 @@ pub async fn get_light(
     )
 )]
 pub async fn post_light(
-    addr: Option<ConnectInfo<SocketAddr>>,
+    addr: Option<Extension<ConnectInfo<SocketAddr>>>,
     State(state): State<AppState>,
     _auth: AuthGuard,
     body: Bytes,
