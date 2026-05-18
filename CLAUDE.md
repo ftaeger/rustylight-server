@@ -85,9 +85,21 @@ Built with `cargo-deb` and `cargo-generate-rpm`. Installs to:
 
 The write buffer is **65 bytes**: `buf[0] = 0x00` (Report ID prefix), `buf[1..65]` is the 64-byte payload. Linux's `usbhid_output_report()` strips `buf[0]` before USB transmission, so the device always receives exactly 64 bytes.
 
-Payload layout (64 bytes):
-- Bytes 0–55: 7 steps × 8 bytes each. Step structure: `[Repeat, R, G, B, OnHi, OnLo, OffHi, OffLo]`. `Repeat=0` loops the step (blink using on/off timing); `Repeat=1` plays once then advances to the next step (used for two-color blink). `OnHi:OnLo` and `OffHi:OffLo` are 16-bit big-endian values in 10 ms units; `0xFFFF` = steady-on. Unused steps stay zero.
-- Bytes 56–63: footer — `[0x04, 0x04, 0x55, 0xFF, 0xFF, 0xFF, checksum_hi, checksum_lo]`. The checksum is the 16-bit big-endian sum of payload bytes 0–61.
+Payload layout (64 bytes, serialised as 8 big-endian uint64s):
+- Bytes 0–55: 7 steps × 8 bytes each. Each step is a 64-bit big-endian word:
+  - Byte 0: `(opcode << 4) | target_step`. Opcodes: `Jump=0x1`, `KeepAlive=0x8`.
+  - Byte 1: `repeat` — 0 = loop forever, 1 = play once then jump to `target_step`.
+  - Bytes 2–4: R, G, B — scaled to 0–100 (not raw 0–255). `scale(c) = c * 100 / 255`.
+  - Byte 5: `duty_cycle_on` — on-time in 100 ms units (0 = steady on when off=0 too).
+  - Byte 6: `duty_cycle_off` — off-time in 100 ms units.
+  - Byte 7: flags (audio/ringtone/volume — always 0 for this server).
+- Bytes 56–63: footer — `[0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, checksum_hi, checksum_lo]`. The checksum is the 16-bit big-endian sum of payload bytes 0–61.
+
+Steady-on: `Jump` (0x1), target=0, repeat=0, colour scaled, on=0, off=0.
+Single-colour blink: `Jump`, target=0, repeat=0, on=`ms/100`, off=`ms/100`.
+Two-colour blink: step 0 → `Jump` target=1, repeat=1; step 1 → `Jump` target=0, repeat=1.
+
+VID 0x27BB PID 0x3BCD is a Busylight **Omega** (misidentified as Alpha in older docs).
 
 ## Key files for client developers
 
