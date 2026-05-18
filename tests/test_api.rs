@@ -106,3 +106,22 @@ async fn post_light_returns_400_for_malformed_json() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn get_version_returns_200_without_auth() {
+    let app = common::make_app(false);
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/version")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let json = body_json(resp).await;
+    assert_eq!(json["version"], env!("CARGO_PKG_VERSION"));
+    assert!(json["time"].as_str().is_some());
+}

@@ -25,7 +25,7 @@ hidapi = "2.6"
 rustls = "0.23"
 rcgen = { version = "0.14", features = ["pem"] }
 rustls-pemfile = "2"
-time = "0.3"
+time = { version = "0.3", features = ["formatting"] }
 
 # Config + serialisation
 serde = { version = "1", features = ["derive"] }

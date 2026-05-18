@@ -2,13 +2,13 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::api::handlers;
+use crate::api::handlers::{self, VersionResponse};
 use crate::device::LightState;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(handlers::get_light, handlers::post_light),
-    components(schemas(LightState)),
+    paths(handlers::get_light, handlers::post_light, handlers::get_version),
+    components(schemas(LightState, VersionResponse)),
     info(
         title = "rustylight-server API",
         version = "0.1.0",
