@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -90,8 +89,7 @@ fn save(cfg: &Config, path: &str) -> Result<()> {
 }
 
 pub fn generate_psk() -> String {
-    let mut bytes = [0u8; 32];
-    rand::rng().fill_bytes(&mut bytes);
+    let bytes: [u8; 32] = rand::random();
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
