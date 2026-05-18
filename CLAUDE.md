@@ -60,7 +60,7 @@ log_file = "/var/log/rustylight/rustylight.log"
 
 ## Supported hardware
 
-Kuando Busylight models detected by VID/PID — see `src/device/models.rs`. User's device: `27bb:3bcd` (Busylight Alpha).
+Kuando Busylight models detected by VID/PID — see `src/device/models.rs`. User's device: `27bb:3bcd` (Busylight Omega).
 
 ## Development workflow
 
