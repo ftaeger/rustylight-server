@@ -114,7 +114,7 @@ async fn get_version_returns_200_without_auth() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/api/version")
+                .uri("/api/public/version")
                 .body(Body::empty())
                 .unwrap(),
         )

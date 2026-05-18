@@ -122,7 +122,7 @@ pub struct VersionResponse {
 
 #[utoipa::path(
     get,
-    path = "/api/version",
+    path = "/api/public/version",
     responses(
         (status = 200, description = "Server version and current UTC time", body = VersionResponse),
     )
