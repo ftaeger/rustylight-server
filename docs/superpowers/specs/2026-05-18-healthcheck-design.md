@@ -4,11 +4,14 @@
 
 Add a public `GET /api/public/healthcheck` endpoint that reports whether the service is operating correctly. Returns 200 when all checks pass, 503 when any check fails. No authentication required.
 
-## Endpoint
+Also move the existing `GET /api/version` endpoint to `GET /api/public/version` to consolidate all public (no-auth) endpoints under the `/api/public/` prefix.
+
+## Endpoints
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/api/public/healthcheck` | none | Service health status |
+| GET | `/api/public/version` | none | Server version and current UTC time (moved from `/api/version`) |
 
 ## Checks
 
@@ -48,6 +51,7 @@ Add a public `GET /api/public/healthcheck` endpoint that reports whether the ser
 **`src/api/mod.rs`**
 - Add `log_file: Arc<String>` to `AppState`
 - Register route: `GET /api/public/healthcheck` → `handlers::get_healthcheck`, no auth middleware
+- Move `GET /api/version` → `GET /api/public/version` (rename existing route, no handler changes needed)
 
 **`src/main.rs`**
 - Pass `config.logging.log_file` into `AppState` when building the router
@@ -59,7 +63,8 @@ Add a public `GET /api/public/healthcheck` endpoint that reports whether the ser
 - Bump version `0.0.9` → `0.1.0`
 
 **`docs/API.md`**
-- Document the new endpoint, response fields, and status codes
+- Document the new `/api/public/healthcheck` endpoint, response fields, and status codes
+- Update `/api/version` references to `/api/public/version`
 
 ### No new dependencies required
 
@@ -70,6 +75,8 @@ Add a public `GET /api/public/healthcheck` endpoint that reports whether the ser
 - `GET /api/public/healthcheck` with `connected = false` → 503, `status = "degraded"`, `busylight_connected = false`
 - `GET /api/public/healthcheck` with a non-existent/non-writable log path → 503, `status = "degraded"`, `log_writable = false`
 - Confirm endpoint requires no `X-Api-Key` header (request without header → 200 when healthy, not 401)
+- `GET /api/public/version` returns 200 without auth (renamed from `/api/version`)
+- `GET /api/version` no longer exists (would 404)
 
 ## Version
 
