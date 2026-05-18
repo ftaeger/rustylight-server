@@ -261,8 +261,7 @@ cert_file = "/etc/rustylight/tls.crt"           # PEM certificate (auto-generate
 key_file  = "/etc/rustylight/tls.key"           # PEM private key (auto-generated if missing)
 
 [auth]
-psk = ""                                         # Base64URL-encoded 32-byte key; auto-generated on first start
-                                                 # After first start this will contain the real PSK value
+psk = ""                                         # 64-char hex string; auto-generated on first start
 
 [logging]
 level    = "info"                                # One of: trace | debug | info | warn | error

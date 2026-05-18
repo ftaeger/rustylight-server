@@ -44,35 +44,23 @@ level    = "info"      # trace | debug | info | warn | error
 log_file = "/var/log/rustylight/rustylight.log"
 ```
 
-On first start, a random PSK is generated and written to the config. Share the `psk` value with API clients; they need it to compute HMAC signatures.
+On first start, a random PSK is generated and written to the config. Copy the value from `auth.psk` and share it with API clients.
 
 ## Authentication
 
-Every `/api/light` request must include:
+Every `/api/light` request must include an `X-Api-Key` header with the PSK value from the config:
 
 ```
-X-Timestamp: <unix timestamp, seconds UTC>
-X-Signature: <lowercase hex HMAC-SHA256(base64url-decoded-psk, timestamp_string + request_body)>
+X-Api-Key: <value of auth.psk from /etc/rustylight/rustylight.conf>
 ```
-
-For GET requests, `request_body` is an empty string.
 
 ### Example with curl
 
 ```bash
-PSK_RAW=$(grep ^psk /etc/rustylight/rustylight.conf | awk -F'"' '{print $2}')
-TS=$(date +%s)
-SIG=$(python3 -c "
-import hmac, hashlib, base64, sys
-psk = base64.urlsafe_b64decode('${PSK_RAW}' + '==')
-body = b''
-msg = '${TS}'.encode() + body
-print(hmac.new(psk, msg, hashlib.sha256).hexdigest())
-")
+PSK=$(sudo grep 'psk' /etc/rustylight/rustylight.conf | awk -F'"' '{print $2}')
 
 curl -sk \
-  -H "X-Timestamp: $TS" \
-  -H "X-Signature: $SIG" \
+  -H "X-Api-Key: $PSK" \
   https://localhost:8443/api/light
 ```
 
