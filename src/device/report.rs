@@ -1,71 +1,79 @@
 use crate::device::LightState;
 
-const STEP_SIZE: usize = 7;
-const NUM_STEPS: usize = 8;
-// The Busylight hidraw interface expects exactly 64 bytes of raw payload.
-// Linux hidraw passes bytes directly to the USB firmware without adding or
-// stripping a Report ID, so we must NOT prepend one.
-const REPORT_SIZE: usize = 64;
-const KEEPALIVE_IDX: usize = 63;
-const KEEPALIVE_SECS: u8 = 5;
+const NUM_STEPS: usize = 7;
+const STEP_SIZE: usize = 8;
+const PAYLOAD_SIZE: usize = (NUM_STEPS + 1) * STEP_SIZE; // 64 bytes (7 steps + 8-byte footer)
+                                                         // Write buffer: 0x00 Report ID prefix at buf[0] + 64-byte payload.
+                                                         // Linux usbhid_output_report() strips buf[0] before USB transmission,
+                                                         // ensuring the device always receives exactly 64 bytes.
+const WRITE_SIZE: usize = PAYLOAD_SIZE + 1; // 65 bytes
 
-pub fn build_report(state: &LightState) -> [u8; REPORT_SIZE] {
-    let mut report = [0u8; REPORT_SIZE];
+const FOOTER_BASE: usize = NUM_STEPS * STEP_SIZE; // 56
 
-    if !state.on {
-        report[KEEPALIVE_IDX] = KEEPALIVE_SECS;
-        return report;
-    }
+pub fn build_report(state: &LightState) -> [u8; WRITE_SIZE] {
+    let mut buf = [0u8; WRITE_SIZE];
+    // buf[0] = 0x00 Report ID prefix (stripped by kernel)
+    let p = &mut buf[1..]; // 64-byte payload
 
-    if state.blink {
-        let on_ticks = state.effective_blink_on_ms() / 10;
-        let off_ticks = state.effective_blink_off_ms() / 10;
+    p[FOOTER_BASE] = 0x04;
+    p[FOOTER_BASE + 1] = 0x04;
+    p[FOOTER_BASE + 2] = 0x55;
+    p[FOOTER_BASE + 3] = 0xFF;
+    p[FOOTER_BASE + 4] = 0xFF;
+    p[FOOTER_BASE + 5] = 0xFF;
 
-        let r2 = state.r2.unwrap_or(0);
-        let g2 = state.g2.unwrap_or(0);
-        let b2 = state.b2.unwrap_or(0);
-        let two_color = r2 > 0 || g2 > 0 || b2 > 0;
-
-        if two_color {
-            write_step(&mut report, 0, state.r, state.g, state.b, on_ticks, 0);
-            write_step(&mut report, 1, r2, g2, b2, off_ticks, 0);
+    if state.on {
+        if state.blink {
+            build_blink(p, state);
         } else {
-            write_step(
-                &mut report,
-                0,
-                state.r,
-                state.g,
-                state.b,
-                on_ticks,
-                off_ticks,
-            );
+            write_step(p, 0, 0, 0, state.r, state.g, state.b, 0xFF, 0);
         }
-    } else {
-        write_step(&mut report, 0, state.r, state.g, state.b, 0xFFFF, 0);
     }
 
-    report[NUM_STEPS * STEP_SIZE] = 0x00;
-    report[KEEPALIVE_IDX] = KEEPALIVE_SECS;
-    report
+    let checksum: u16 = p[..FOOTER_BASE + 6].iter().map(|&b| b as u16).sum();
+    p[FOOTER_BASE + 6] = (checksum >> 8) as u8;
+    p[FOOTER_BASE + 7] = (checksum & 0xFF) as u8;
+
+    buf
 }
 
+fn build_blink(p: &mut [u8], state: &LightState) {
+    let on_ticks = (state.effective_blink_on_ms() / 10).min(254) as u8;
+    let off_ticks = (state.effective_blink_off_ms() / 10).min(255) as u8;
+    let r2 = state.r2.unwrap_or(0);
+    let g2 = state.g2.unwrap_or(0);
+    let b2 = state.b2.unwrap_or(0);
+
+    if r2 > 0 || g2 > 0 || b2 > 0 {
+        // Two-color: step 0 → step 1 → step 0 → ...
+        write_step(p, 0, 1, 0, state.r, state.g, state.b, on_ticks, 0);
+        write_step(p, 1, 0, 0, r2, g2, b2, off_ticks, 0);
+    } else {
+        write_step(p, 0, 0, 0, state.r, state.g, state.b, on_ticks, off_ticks);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn write_step(
-    report: &mut [u8; REPORT_SIZE],
+    p: &mut [u8],
     step: usize,
+    next: u8,
+    repeat: u8,
     r: u8,
     g: u8,
     b: u8,
-    on_ticks: u16,
-    off_ticks: u16,
+    on: u8,
+    off: u8,
 ) {
     let base = step * STEP_SIZE;
-    report[base] = r;
-    report[base + 1] = g;
-    report[base + 2] = b;
-    report[base + 3] = (on_ticks >> 8) as u8;
-    report[base + 4] = (on_ticks & 0xFF) as u8;
-    report[base + 5] = (off_ticks >> 8) as u8;
-    report[base + 6] = (off_ticks & 0xFF) as u8;
+    p[base] = next;
+    p[base + 1] = repeat;
+    p[base + 2] = r;
+    p[base + 3] = g;
+    p[base + 4] = b;
+    p[base + 5] = on;
+    p[base + 6] = off;
+    p[base + 7] = 0; // audio (silent)
 }
 
 #[cfg(test)]
@@ -73,48 +81,65 @@ mod tests {
     use super::*;
     use crate::device::LightState;
 
-    #[test]
-    fn report_is_64_bytes() {
-        let state = LightState::default();
-        let report = build_report(&state);
-        assert_eq!(report.len(), 64);
+    fn payload(buf: &[u8; WRITE_SIZE]) -> &[u8] {
+        &buf[1..]
     }
 
     #[test]
-    fn steady_red_sets_step0_color() {
+    fn report_is_65_bytes() {
+        let buf = build_report(&LightState::default());
+        assert_eq!(buf.len(), 65);
+    }
+
+    #[test]
+    fn report_id_byte_is_zero() {
+        let buf = build_report(&LightState::default());
+        assert_eq!(buf[0], 0x00);
+    }
+
+    #[test]
+    fn off_state_has_footer_and_correct_checksum() {
+        let buf = build_report(&LightState::default());
+        let p = payload(&buf);
+        assert_eq!(&p[..FOOTER_BASE], &[0u8; FOOTER_BASE]);
+        assert_eq!(p[FOOTER_BASE], 0x04);
+        assert_eq!(p[FOOTER_BASE + 1], 0x04);
+        assert_eq!(p[FOOTER_BASE + 2], 0x55);
+        assert_eq!(p[FOOTER_BASE + 3], 0xFF);
+        assert_eq!(p[FOOTER_BASE + 4], 0xFF);
+        assert_eq!(p[FOOTER_BASE + 5], 0xFF);
+        // 4+4+85+255+255+255 = 858 = 0x035A
+        assert_eq!(p[FOOTER_BASE + 6], 0x03);
+        assert_eq!(p[FOOTER_BASE + 7], 0x5A);
+    }
+
+    #[test]
+    fn steady_red_step0_and_checksum() {
         let state = LightState {
             on: true,
             r: 255,
             g: 0,
             b: 0,
-            blink: false,
             ..Default::default()
         };
-        let report = build_report(&state);
-        assert_eq!(report[0], 255);
-        assert_eq!(report[1], 0);
-        assert_eq!(report[2], 0);
-        assert_eq!(report[3], 0xFF);
-        assert_eq!(report[4], 0xFF);
-        assert_eq!(report[5], 0x00);
-        assert_eq!(report[6], 0x00);
+        let buf = build_report(&state);
+        let p = payload(&buf);
+        assert_eq!(p[0], 0); // next
+        assert_eq!(p[1], 0); // repeat
+        assert_eq!(p[2], 255); // r
+        assert_eq!(p[3], 0); // g
+        assert_eq!(p[4], 0); // b
+        assert_eq!(p[5], 0xFF); // on (steady)
+        assert_eq!(p[6], 0); // off
+        assert_eq!(p[7], 0); // audio
+        assert_eq!(&p[8..FOOTER_BASE], &[0u8; FOOTER_BASE - 8]);
+        // 255(r)+255(on)+[footer 858] = 1368 = 0x0558
+        assert_eq!(p[FOOTER_BASE + 6], 0x05);
+        assert_eq!(p[FOOTER_BASE + 7], 0x58);
     }
 
     #[test]
-    fn off_state_all_zeros_except_keepalive() {
-        let state = LightState {
-            on: false,
-            ..Default::default()
-        };
-        let report = build_report(&state);
-        assert_eq!(report[0], 0);
-        assert_eq!(report[1], 0);
-        assert_eq!(report[2], 0);
-        assert_eq!(report[63], 0x05);
-    }
-
-    #[test]
-    fn blink_color_to_off_sets_on_off_timing() {
+    fn blink_single_color_timing() {
         let state = LightState {
             on: true,
             r: 0,
@@ -125,15 +150,18 @@ mod tests {
             blink_off_ms: Some(300),
             ..Default::default()
         };
-        let report = build_report(&state);
-        assert_eq!(report[3], 0x00);
-        assert_eq!(report[4], 50);
-        assert_eq!(report[5], 0x00);
-        assert_eq!(report[6], 30);
+        let buf = build_report(&state);
+        let p = payload(&buf);
+        assert_eq!(p[0], 0); // next (loops to self)
+        assert_eq!(p[2], 0); // r
+        assert_eq!(p[3], 255); // g
+        assert_eq!(p[4], 0); // b
+        assert_eq!(p[5], 50); // on_ticks: 500/10 = 50
+        assert_eq!(p[6], 30); // off_ticks: 300/10 = 30
     }
 
     #[test]
-    fn blink_two_colors_sets_step1_color() {
+    fn blink_two_colors_step0_and_step1() {
         let state = LightState {
             on: true,
             r: 255,
@@ -146,11 +174,19 @@ mod tests {
             g2: Some(0),
             b2: Some(255),
         };
-        let report = build_report(&state);
-        assert_eq!(report[0], 255); // r
-        assert_eq!(report[2], 0); // b
-        assert_eq!(report[7], 0); // r2
-        assert_eq!(report[8], 0); // g2
-        assert_eq!(report[9], 255); // b2
+        let buf = build_report(&state);
+        let p = payload(&buf);
+        // Step 0: advance to step 1 after on_ticks
+        assert_eq!(p[0], 1); // next → step 1
+        assert_eq!(p[2], 255); // r
+        assert_eq!(p[4], 0); // b
+        assert_eq!(p[5], 50); // on_ticks
+        assert_eq!(p[6], 0); // no off gap in step 0
+                             // Step 1: return to step 0 after off_ticks
+        assert_eq!(p[8], 0); // next → step 0
+        assert_eq!(p[10], 0); // r2
+        assert_eq!(p[11], 0); // g2
+        assert_eq!(p[12], 255); // b2
+        assert_eq!(p[13], 50); // off_ticks used as on time for step 1
     }
 }

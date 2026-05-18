@@ -30,12 +30,12 @@ fn run_loop(shared: Arc<Mutex<SharedState>>) {
 
             let report = build_report(&state);
             tracing::trace!(
-                "HID write: on={} r={} g={} b={} | report[0..8]={:02x?}",
+                "HID write: on={} r={} g={} b={} | payload[0..8]={:02x?}",
                 state.on,
                 state.r,
                 state.g,
                 state.b,
-                &report[..8],
+                &report[1..9],
             );
             match dev.write(&report) {
                 Ok(n) => tracing::trace!("HID write OK: {n} bytes written"),
