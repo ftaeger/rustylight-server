@@ -2,16 +2,15 @@ use crate::device::LightState;
 
 const STEP_SIZE: usize = 7;
 const NUM_STEPS: usize = 8;
-// 1 byte Report ID (0x00) + 64 bytes payload; hidapi requires the Report ID
-// as the first byte even for devices with a single unnumbered report.
-const REPORT_SIZE: usize = 65;
-const DATA_OFFSET: usize = 1;
-const KEEPALIVE_IDX: usize = 64;
+// The Busylight hidraw interface expects exactly 64 bytes of raw payload.
+// Linux hidraw passes bytes directly to the USB firmware without adding or
+// stripping a Report ID, so we must NOT prepend one.
+const REPORT_SIZE: usize = 64;
+const KEEPALIVE_IDX: usize = 63;
 const KEEPALIVE_SECS: u8 = 5;
 
 pub fn build_report(state: &LightState) -> [u8; REPORT_SIZE] {
     let mut report = [0u8; REPORT_SIZE];
-    // report[0] stays 0x00 (Report ID)
 
     if !state.on {
         report[KEEPALIVE_IDX] = KEEPALIVE_SECS;
@@ -45,7 +44,7 @@ pub fn build_report(state: &LightState) -> [u8; REPORT_SIZE] {
         write_step(&mut report, 0, state.r, state.g, state.b, 0xFFFF, 0);
     }
 
-    report[DATA_OFFSET + NUM_STEPS * STEP_SIZE] = 0x00;
+    report[NUM_STEPS * STEP_SIZE] = 0x00;
     report[KEEPALIVE_IDX] = KEEPALIVE_SECS;
     report
 }
@@ -59,7 +58,7 @@ fn write_step(
     on_ticks: u16,
     off_ticks: u16,
 ) {
-    let base = DATA_OFFSET + step * STEP_SIZE;
+    let base = step * STEP_SIZE;
     report[base] = r;
     report[base + 1] = g;
     report[base + 2] = b;
@@ -75,24 +74,10 @@ mod tests {
     use crate::device::LightState;
 
     #[test]
-    fn report_is_65_bytes() {
+    fn report_is_64_bytes() {
         let state = LightState::default();
         let report = build_report(&state);
-        assert_eq!(report.len(), 65);
-    }
-
-    #[test]
-    fn report_first_byte_is_report_id_zero() {
-        let state = LightState {
-            on: true,
-            r: 255,
-            g: 0,
-            b: 0,
-            blink: false,
-            ..Default::default()
-        };
-        let report = build_report(&state);
-        assert_eq!(report[0], 0x00);
+        assert_eq!(report.len(), 64);
     }
 
     #[test]
@@ -106,14 +91,13 @@ mod tests {
             ..Default::default()
         };
         let report = build_report(&state);
-        // byte 0 = report ID; data starts at byte 1
-        assert_eq!(report[1], 255);
+        assert_eq!(report[0], 255);
+        assert_eq!(report[1], 0);
         assert_eq!(report[2], 0);
-        assert_eq!(report[3], 0);
+        assert_eq!(report[3], 0xFF);
         assert_eq!(report[4], 0xFF);
-        assert_eq!(report[5], 0xFF);
+        assert_eq!(report[5], 0x00);
         assert_eq!(report[6], 0x00);
-        assert_eq!(report[7], 0x00);
     }
 
     #[test]
@@ -126,7 +110,7 @@ mod tests {
         assert_eq!(report[0], 0);
         assert_eq!(report[1], 0);
         assert_eq!(report[2], 0);
-        assert_eq!(report[64], 0x05);
+        assert_eq!(report[63], 0x05);
     }
 
     #[test]
@@ -142,11 +126,10 @@ mod tests {
             ..Default::default()
         };
         let report = build_report(&state);
-        // step 0 timing starts at byte 4 (1 report ID + 3 color bytes)
-        assert_eq!(report[4], 0x00);
-        assert_eq!(report[5], 50);
-        assert_eq!(report[6], 0x00);
-        assert_eq!(report[7], 30);
+        assert_eq!(report[3], 0x00);
+        assert_eq!(report[4], 50);
+        assert_eq!(report[5], 0x00);
+        assert_eq!(report[6], 30);
     }
 
     #[test]
@@ -164,11 +147,10 @@ mod tests {
             b2: Some(255),
         };
         let report = build_report(&state);
-        // step 0: bytes 1-7; step 1: bytes 8-14
-        assert_eq!(report[1], 255); // r
-        assert_eq!(report[3], 0); // b
-        assert_eq!(report[8], 0); // r2
-        assert_eq!(report[9], 0); // g2
-        assert_eq!(report[10], 255); // b2
+        assert_eq!(report[0], 255); // r
+        assert_eq!(report[2], 0); // b
+        assert_eq!(report[7], 0); // r2
+        assert_eq!(report[8], 0); // g2
+        assert_eq!(report[9], 255); // b2
     }
 }
