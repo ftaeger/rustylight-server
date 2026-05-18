@@ -83,7 +83,11 @@ Built with `cargo-deb` and `cargo-generate-rpm`. Installs to:
 
 ## HID protocol note
 
-The Busylight receives a **65-byte** HID report: byte 0 is the Report ID (`0x00`), bytes 1–56 are 8 color steps × 7 bytes each (R, G, B, on_hi, on_lo, off_hi, off_lo), byte 64 is the keepalive (5 seconds). hidapi on Linux requires the Report ID prefix.
+The write buffer is **65 bytes**: `buf[0] = 0x00` (Report ID prefix), `buf[1..65]` is the 64-byte payload. Linux's `usbhid_output_report()` strips `buf[0]` before USB transmission, so the device always receives exactly 64 bytes.
+
+Payload layout (64 bytes):
+- Bytes 0–55: 7 steps × 8 bytes each. Step structure: `[NextStep, Repeat, R, G, B, OnTime, OffTime, Audio]`. `NextStep` is the index of the next step to execute; `OnTime`/`OffTime` are in 10 ms units (0xFF = 2.55 s). Unused steps stay zero.
+- Bytes 56–63: footer — `[0x04, 0x04, 0x55, 0xFF, 0xFF, 0xFF, checksum_hi, checksum_lo]`. The checksum is the 16-bit big-endian sum of payload bytes 0–61.
 
 ## Key files for client developers
 
