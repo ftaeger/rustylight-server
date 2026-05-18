@@ -86,7 +86,7 @@ Built with `cargo-deb` and `cargo-generate-rpm`. Installs to:
 The write buffer is **65 bytes**: `buf[0] = 0x00` (Report ID prefix), `buf[1..65]` is the 64-byte payload. Linux's `usbhid_output_report()` strips `buf[0]` before USB transmission, so the device always receives exactly 64 bytes.
 
 Payload layout (64 bytes):
-- Bytes 0–55: 7 steps × 8 bytes each. Step structure: `[NextStep, Repeat, R, G, B, OnTime, OffTime, Audio]`. `NextStep` is the index of the next step to execute; `OnTime`/`OffTime` are in 10 ms units (0xFF = 2.55 s). Unused steps stay zero.
+- Bytes 0–55: 7 steps × 8 bytes each. Step structure: `[Repeat, R, G, B, OnHi, OnLo, OffHi, OffLo]`. `Repeat=0` loops the step (blink using on/off timing); `Repeat=1` plays once then advances to the next step (used for two-color blink). `OnHi:OnLo` and `OffHi:OffLo` are 16-bit big-endian values in 10 ms units; `0xFFFF` = steady-on. Unused steps stay zero.
 - Bytes 56–63: footer — `[0x04, 0x04, 0x55, 0xFF, 0xFF, 0xFF, checksum_hi, checksum_lo]`. The checksum is the 16-bit big-endian sum of payload bytes 0–61.
 
 ## Key files for client developers

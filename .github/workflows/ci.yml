@@ -7,10 +7,6 @@ on:
     paths-ignore:
       - "**/*.md"
       - "docs/**"
-  pull_request:
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
 
 env:
   CARGO_TERM_COLOR: always
