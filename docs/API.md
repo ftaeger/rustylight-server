@@ -207,7 +207,7 @@ Returns the server version and current UTC time. No authentication required. (Mo
 
 **Success response — 200 OK**
 ```json
-{"version": "0.1.0", "time": "2026-05-19T00:00:00Z"}
+{"version": "1.0.0", "time": "2026-05-19T00:00:00Z"}
 ```
 
 ---
@@ -339,4 +339,46 @@ The USB manager polls every 2 seconds. The `connected` field in the GET response
 2. Configure your HTTP client to accept self-signed TLS certificates, or import the server's certificate.
 3. For every request, send `X-Api-Key: <psk>` as a header.
 4. If you receive a 503, the USB device is not plugged in — retry after reconnecting.
+5. Use `GET /api/public/healthcheck` (no auth required) to verify the service is running and the device is connected before issuing light commands.
+
+---
+
+## Operations
+
+### Memory Usage
+
+The shipped systemd unit enables memory accounting (`MemoryAccounting=yes`), so memory consumption is visible via systemd on any supported distribution.
+
+**Debian / Ubuntu / Raspberry Pi OS / RHEL / Rocky / Alma:**
+```bash
+systemctl show --property=MemoryCurrent rustylight
+```
+
+Returns current resident memory in bytes (typically 8–12 MB).
+
+**Raspberry Pi OS only — additional kernel setup required:**
+
+On Raspberry Pi OS the memory cgroup controller is not enabled by default. If the command above returns `[not set]`, add the following to the kernel command line and reboot:
+
+```bash
+# Raspberry Pi OS (bookworm and newer):
+sudo nano /boot/firmware/cmdline.txt
+
+# Raspberry Pi OS (bullseye and older):
+sudo nano /boot/cmdline.txt
+```
+
+Append to the **same single line** (do not add a newline):
+```
+cgroup_enable=memory cgroup_memory=1
+```
+
+After rebooting, `MemoryCurrent` will report correctly.
+
+**Alternative — works on all systems without any setup:**
+```bash
+ps -o pid,rss,vsz,comm -p $(pgrep rustylight-server)
+```
+
+`rss` is resident set size in kilobytes — the actual RAM in use.
 5. Use `GET /api/public/healthcheck` (no auth required) to verify the service is running and the device is connected before issuing light commands.
