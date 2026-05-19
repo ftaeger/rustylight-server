@@ -154,10 +154,11 @@ pub struct HealthResponse {
 )]
 pub async fn get_healthcheck(State(state): State<AppState>) -> impl IntoResponse {
     let busylight_connected = state.shared.lock().unwrap().connected;
-    let log_writable = std::fs::OpenOptions::new()
+    let log_writable = tokio::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(state.log_file.as_str())
+        .await
         .is_ok();
 
     let healthy = busylight_connected && log_writable;

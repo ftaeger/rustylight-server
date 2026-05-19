@@ -7,8 +7,9 @@ pub fn test_psk() -> String {
 }
 
 pub fn make_app(connected: bool) -> axum::Router {
-    let log_file = std::env::temp_dir()
-        .join("rustylight-test.log")
+    let log_file = tempfile::NamedTempFile::new()
+        .unwrap()
+        .path()
         .to_str()
         .unwrap()
         .to_string();

@@ -224,3 +224,23 @@ async fn get_version_old_path_returns_404() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+async fn healthcheck_returns_503_when_both_checks_fail() {
+    let app = common::make_app_with_log(false, "/nonexistent/directory/rustylight.log".to_string());
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/public/healthcheck")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let json = body_json(resp).await;
+    assert_eq!(json["status"], "degraded");
+    assert_eq!(json["busylight_connected"], false);
+    assert_eq!(json["log_writable"], false);
+}
