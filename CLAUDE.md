@@ -30,7 +30,8 @@ src/
 |--------|------|------|-------------|
 | GET | `/api/light` | X-Api-Key | Current light state + `connected` field |
 | POST | `/api/light` | X-Api-Key | Set new light state |
-| GET | `/api/version` | none | Server version + current UTC time (RFC 3339) |
+| GET | `/api/public/healthcheck` | none | Service health status (`busylight_connected`, `log_writable`) |
+| GET | `/api/public/version` | none | Server version + current UTC time (RFC 3339) |
 | GET | `/api` | none | Swagger UI |
 | GET | `/api/openapi.json` | none | OpenAPI spec |
 
