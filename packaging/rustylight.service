@@ -16,6 +16,7 @@ ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/var/log/rustylight /etc/rustylight
 PrivateTmp=true
+MemoryAccounting=yes
 
 [Install]
 WantedBy=multi-user.target

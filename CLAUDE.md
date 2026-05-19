@@ -67,7 +67,7 @@ Kuando Busylight models detected by VID/PID — see `src/device/models.rs`. User
 
 - **Branch:** always work on a feature branch, never commit directly to `main`
 - **PR/release:** only after CI is green on the feature branch
-- **Tests:** `cargo test` (52 tests total: unit + integration)
+- **Tests:** `cargo test` (61 tests total: unit + integration)
 - **Lint:** `cargo fmt --check && cargo clippy -- -D warnings`
 - **CI:** `.github/workflows/ci.yml` — runs on push/PR, skips for `.md` and `docs/` changes
 - **Release pipeline:** `.github/workflows/release.yml` — triggered by GitHub release publish or `workflow_dispatch`; builds `.deb` and `.rpm` for 4 targets (x86_64, i686, aarch64, armv7)
