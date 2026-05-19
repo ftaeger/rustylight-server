@@ -114,7 +114,7 @@ async fn get_version_returns_200_without_auth() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/api/version")
+                .uri("/api/public/version")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -124,4 +124,123 @@ async fn get_version_returns_200_without_auth() {
     let json = body_json(resp).await;
     assert_eq!(json["version"], env!("CARGO_PKG_VERSION"));
     assert!(json["time"].as_str().is_some());
+}
+
+#[tokio::test]
+async fn healthcheck_returns_200_when_healthy() {
+    let log = tempfile::NamedTempFile::new().unwrap();
+    let log_path = log.path().to_str().unwrap().to_string();
+    let app = common::make_app_with_log(true, log_path);
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/public/healthcheck")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let json = body_json(resp).await;
+    assert_eq!(json["status"], "ok");
+    assert_eq!(json["busylight_connected"], true);
+    assert_eq!(json["log_writable"], true);
+}
+
+#[tokio::test]
+async fn healthcheck_requires_no_auth() {
+    let log = tempfile::NamedTempFile::new().unwrap();
+    let log_path = log.path().to_str().unwrap().to_string();
+    let app = common::make_app_with_log(true, log_path);
+    // No X-Api-Key header — must still return 200
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/public/healthcheck")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn healthcheck_returns_503_when_device_disconnected() {
+    let log = tempfile::NamedTempFile::new().unwrap();
+    let log_path = log.path().to_str().unwrap().to_string();
+    let app = common::make_app_with_log(false, log_path);
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/public/healthcheck")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let json = body_json(resp).await;
+    assert_eq!(json["status"], "degraded");
+    assert_eq!(json["busylight_connected"], false);
+    assert_eq!(json["log_writable"], true);
+}
+
+#[tokio::test]
+async fn healthcheck_returns_503_when_log_not_writable() {
+    let app = common::make_app_with_log(true, "/nonexistent/directory/rustylight.log".to_string());
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/public/healthcheck")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let json = body_json(resp).await;
+    assert_eq!(json["status"], "degraded");
+    assert_eq!(json["busylight_connected"], true);
+    assert_eq!(json["log_writable"], false);
+}
+
+#[tokio::test]
+async fn get_version_old_path_returns_404() {
+    let app = common::make_app(false);
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/version")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn healthcheck_returns_503_when_both_checks_fail() {
+    let app = common::make_app_with_log(false, "/nonexistent/directory/rustylight.log".to_string());
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/public/healthcheck")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let json = body_json(resp).await;
+    assert_eq!(json["status"], "degraded");
+    assert_eq!(json["busylight_connected"], false);
+    assert_eq!(json["log_writable"], false);
 }

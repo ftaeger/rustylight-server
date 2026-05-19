@@ -171,6 +171,47 @@ OpenAPI 3.0 specification as JSON. No authentication required. Useful for genera
 
 ---
 
+### GET /api/public/healthcheck
+
+Reports whether the service is operating correctly. No authentication required.
+
+**Request headers**: none
+
+**Request body**: none
+
+**Success response — 200 OK** (all checks pass)
+```json
+{"status": "ok", "busylight_connected": true, "log_writable": true}
+```
+
+**Degraded response — 503 Service Unavailable** (one or more checks fail)
+```json
+{"status": "degraded", "busylight_connected": false, "log_writable": false}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | `"ok"` when all checks pass, `"degraded"` otherwise |
+| `busylight_connected` | boolean | Whether a Busylight USB device is currently detected |
+| `log_writable` | boolean | Whether the configured log file path is writable |
+
+---
+
+### GET /api/public/version
+
+Returns the server version and current UTC time. No authentication required. (Moved from `/api/version`.)
+
+**Request headers**: none
+
+**Request body**: none
+
+**Success response — 200 OK**
+```json
+{"version": "0.1.0", "time": "2026-05-19T00:00:00Z"}
+```
+
+---
+
 ## Request Examples
 
 ### Turn the light on — solid red
@@ -298,3 +339,4 @@ The USB manager polls every 2 seconds. The `connected` field in the GET response
 2. Configure your HTTP client to accept self-signed TLS certificates, or import the server's certificate.
 3. For every request, send `X-Api-Key: <psk>` as a header.
 4. If you receive a 503, the USB device is not plugged in — retry after reconnecting.
+5. Use `GET /api/public/healthcheck` (no auth required) to verify the service is running and the device is connected before issuing light commands.

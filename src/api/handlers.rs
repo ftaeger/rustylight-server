@@ -122,7 +122,7 @@ pub struct VersionResponse {
 
 #[utoipa::path(
     get,
-    path = "/api/version",
+    path = "/api/public/version",
     responses(
         (status = 200, description = "Server version and current UTC time", body = VersionResponse),
     )
@@ -135,6 +135,44 @@ pub async fn get_version() -> impl IntoResponse {
         version: env!("CARGO_PKG_VERSION"),
         time,
     })
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct HealthResponse {
+    pub status: &'static str,
+    pub busylight_connected: bool,
+    pub log_writable: bool,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/public/healthcheck",
+    responses(
+        (status = 200, description = "All checks pass", body = HealthResponse),
+        (status = 503, description = "One or more checks failed", body = HealthResponse),
+    )
+)]
+pub async fn get_healthcheck(State(state): State<AppState>) -> impl IntoResponse {
+    let busylight_connected = state.shared.lock().unwrap().connected;
+    let log_writable = tokio::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(state.log_file.as_str())
+        .await
+        .is_ok();
+
+    let healthy = busylight_connected && log_writable;
+    let response = HealthResponse {
+        status: if healthy { "ok" } else { "degraded" },
+        busylight_connected,
+        log_writable,
+    };
+    let status_code = if healthy {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+    (status_code, Json(response)).into_response()
 }
 
 #[cfg(test)]
