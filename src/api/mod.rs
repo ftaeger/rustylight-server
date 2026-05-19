@@ -13,13 +13,15 @@ use std::sync::{Arc, Mutex};
 pub struct AppState {
     pub psk: Arc<String>,
     pub shared: Arc<Mutex<SharedState>>,
+    pub log_file: Arc<String>,
 }
 
 pub fn build_router(state: AppState) -> Router {
     let api_routes = Router::new()
         .route("/light", get(handlers::get_light))
         .route("/light", post(handlers::post_light))
-        .route("/version", get(handlers::get_version))
+        .route("/public/version", get(handlers::get_version))
+        .route("/public/healthcheck", get(handlers::get_healthcheck))
         .with_state(state);
 
     let swagger_routes = openapi::swagger_router();

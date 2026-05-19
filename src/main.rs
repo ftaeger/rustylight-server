@@ -30,6 +30,7 @@ async fn main() -> Result<()> {
     let state = api::AppState {
         psk: Arc::new(cfg.auth.psk.clone()),
         shared: Arc::clone(&shared),
+        log_file: Arc::new(cfg.logging.log_file.clone()),
     };
 
     let router = api::build_router(state);
