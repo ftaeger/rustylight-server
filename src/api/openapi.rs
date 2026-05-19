@@ -16,7 +16,7 @@ use crate::device::LightState;
     components(schemas(LightState, VersionResponse, HealthResponse)),
     info(
         title = "rustylight-server API",
-        version = "0.1.0",
+        version = "1.0.0",
         description = "REST API for controlling a Kuando Busylight USB device.\n\n\
             ## Authentication\n\
             Every `/api/light` request requires an `X-Api-Key` header containing \

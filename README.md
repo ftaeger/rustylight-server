@@ -95,8 +95,22 @@ Blink between two colors:
 
 Turn off:
 ```json
-{"on": false}
+{"on": false, "r": 0, "g": 0, "b": 0}
 ```
+
+### `GET /api/public/healthcheck`
+
+Reports service health — no authentication required:
+
+```json
+{"status": "ok", "busylight_connected": true, "log_writable": true}
+```
+
+Returns 200 when all checks pass, 503 with `"status": "degraded"` when any check fails.
+
+### `GET /api/public/version`
+
+Returns server version and current UTC time — no authentication required.
 
 ## Service Management
 
@@ -106,6 +120,14 @@ sudo systemctl stop rustylight
 sudo systemctl status rustylight
 sudo journalctl -u rustylight -f
 ```
+
+### Memory Usage
+
+```bash
+systemctl show --property=MemoryCurrent rustylight
+```
+
+On Raspberry Pi OS this requires enabling the memory cgroup controller. Add `cgroup_enable=memory cgroup_memory=1` to `/boot/firmware/cmdline.txt` (bookworm) or `/boot/cmdline.txt` (bullseye) on a single line, then reboot. See `docs/API.md` for details.
 
 ## Logs
 
