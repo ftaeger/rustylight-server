@@ -13,9 +13,9 @@ src/
   tls.rs           — self-signed ECDSA P-256 cert generation via rcgen; auto-generated on first start
   logging.rs       — tracing-subscriber setup with log file rotation
   api/
-    mod.rs         — axum router: /api/light (auth), /api/version (public), Swagger UI
+    mod.rs         — axum router: /api/light (auth), /api/public/healthcheck, /api/public/version, Swagger UI
     auth.rs        — X-Api-Key header extractor (FromRequestParts, constant-time compare via subtle)
-    handlers.rs    — get_light, post_light, get_version handlers + VersionResponse struct
+    handlers.rs    — get_light, post_light, get_version, get_healthcheck handlers + response structs
     openapi.rs     — utoipa OpenAPI spec, Swagger UI at /api
   device/
     mod.rs         — LightState struct (serde), SharedState (Arc<Mutex<>>)
