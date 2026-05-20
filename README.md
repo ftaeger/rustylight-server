@@ -24,16 +24,22 @@ The server supports the following Kuando Busylight models, detected automaticall
 
 #### Debian / Ubuntu — Modern (.sources, Debian 13+ / Ubuntu 24.04+)
 
-```bash
-# Optional: verify the key fingerprint before importing
-curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | gpg --show-keys
-# This instance's fingerprint: 80A3 D1FA 02E2 97F5 5F73 B8C2 AB16 B30A 66F4 1FFB
+Optional: verify the key fingerprint before importing (this instance's fingerprint: `80A3 D1FA 02E2 97F5 5F73 B8C2 AB16 B30A 66F4 1FFB`):
 
-# Import the signing key
+```bash
+curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | gpg --show-keys
+```
+
+Import the signing key:
+
+```bash
 curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | \
   sudo gpg --dearmor -o /etc/apt/keyrings/rustylight-server.gpg
+```
 
-# Add the repository
+Add the repository. To include pre-release versions, replace the URL with `https://reprox.dev/ftaeger/rustylight-server/prerelease`:
+
+```bash
 sudo tee /etc/apt/sources.list.d/rustylight-server.sources << EOF
 Types: deb
 URIs: https://reprox.dev/ftaeger/rustylight-server
@@ -41,34 +47,45 @@ Suites: stable
 Components: main
 Signed-By: /etc/apt/keyrings/rustylight-server.gpg
 EOF
-# To include Releases marked as Pre-Release, change the URL to
-# https://reprox.dev/ftaeger/rustylight-server/prerelease
+```
 
-# Install
+Install:
+
+```bash
 sudo apt update && sudo apt install rustylight-server
 ```
 
 #### Debian / Ubuntu — Legacy (.list format)
 
-```bash
-# Optional: verify the key fingerprint before importing
-curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | gpg --show-keys
-# This instance's fingerprint: 80A3 D1FA 02E2 97F5 5F73 B8C2 AB16 B30A 66F4 1FFB
+Optional: verify the key fingerprint before importing (this instance's fingerprint: `80A3 D1FA 02E2 97F5 5F73 B8C2 AB16 B30A 66F4 1FFB`):
 
-# Import the signing key
+```bash
+curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | gpg --show-keys
+```
+
+Import the signing key:
+
+```bash
 curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | \
   sudo gpg --dearmor -o /etc/apt/keyrings/rustylight-server.gpg
+```
 
+Add the repository. To include pre-release versions, replace the URL with `https://reprox.dev/ftaeger/rustylight-server/prerelease`:
+
+```bash
 echo "deb [signed-by=/etc/apt/keyrings/rustylight-server.gpg] https://reprox.dev/ftaeger/rustylight-server stable main" | \
   sudo tee /etc/apt/sources.list.d/rustylight-server.list
-# To include Releases marked as Pre-Release, change the URL to
-# https://reprox.dev/ftaeger/rustylight-server/prerelease
+```
 
-# Install
+Install:
+
+```bash
 sudo apt update && sudo apt install rustylight-server
 ```
 
 #### Fedora / RHEL / CentOS
+
+Add the repository. To include pre-release versions, replace the `baseurl` with `https://reprox.dev/ftaeger/rustylight-server/prerelease`:
 
 ```bash
 sudo tee /etc/yum.repos.d/rustylight-server.repo << EOF
@@ -80,12 +97,12 @@ gpgcheck=0
 repo_gpgcheck=1
 gpgkey=https://reprox.dev/ftaeger/rustylight-server/public.key
 EOF
-# To include Releases marked as Pre-Release, change the URL to
-# https://reprox.dev/ftaeger/rustylight-server/prerelease
+```
 
+Install (the GPG key fingerprint `80A3 D1FA 02E2 97F5 5F73 B8C2 AB16 B30A 66F4 1FFB` will be shown for verification on first install):
+
+```bash
 sudo dnf install rustylight-server
-# Optional: verify the key fingerprint on first update/install
-# This instance's fingerprint: 80A3 D1FA 02E2 97F5 5F73 B8C2 AB16 B30A 66F4 1FFB
 ```
 
 ### Manual Download
