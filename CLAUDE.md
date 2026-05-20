@@ -110,7 +110,7 @@ VID 0x27BB PID 0x3BCD is a Busylight **Omega** (misidentified as Alpha in older 
 
 ## Design docs and plans
 
-Stored in `docs/drafts/specs/` and `docs/drafts/plans/`. These are tracked in git.
+Stored in `docs/drafts/specs/` and `docs/drafts/plans/`. These are local only and not tracked in git.
 
 ## Debugging on the Pi
 
