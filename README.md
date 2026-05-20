@@ -1,12 +1,12 @@
 # rustylight-server
 
-A Rust Linux daemon that controls a [Kuando Busylight](https://www.kuando.com/busylight/) USB device via a TLS-encrypted REST API.
+A Rust Linux daemon that controls a [Kuando Busylight](https://busylight.com/) USB device via a TLS-encrypted REST API.
 
 ## Supported Hardware
 
-The server supports the following Kuando Busylight models, detected automatically by USB VID/PID at startup and on reconnection.
+The server supports the following Busylight models, detected automatically by USB VID/PID at startup and on reconnection.
 
-| Vendor | Product | USB ID | Verified |
+| Vendor | Product | USB ID | Verified / Tested |
 |--------|---------|--------|:--------:|
 | Kuando | Busylight UC Omega | `04d8:f848` | — |
 | Kuando | Busylight UC | `04d8:f8f8` | — |
