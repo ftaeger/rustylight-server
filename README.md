@@ -20,7 +20,77 @@ The server supports the following Kuando Busylight models, detected automaticall
 
 ## Installation
 
-### Debian / Ubuntu / Raspberry Pi
+### Package Repository (Recommended)
+
+#### Debian / Ubuntu — Modern (.sources, Debian 13+ / Ubuntu 24.04+)
+
+```bash
+# Optional: verify the key fingerprint before importing
+curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | gpg --show-keys
+# This instance's fingerprint: 80A3 D1FA 02E2 97F5 5F73 B8C2 AB16 B30A 66F4 1FFB
+
+# Import the signing key
+curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/rustylight-server.gpg
+
+# Add the repository
+sudo tee /etc/apt/sources.list.d/rustylight-server.sources << EOF
+Types: deb
+URIs: https://reprox.dev/ftaeger/rustylight-server
+Suites: stable
+Components: main
+Signed-By: /etc/apt/keyrings/rustylight-server.gpg
+EOF
+# To include Releases marked as Pre-Release, change the URL to
+# https://reprox.dev/ftaeger/rustylight-server/prerelease
+
+# Install
+sudo apt update && sudo apt install rustylight-server
+```
+
+#### Debian / Ubuntu — Legacy (.list format)
+
+```bash
+# Optional: verify the key fingerprint before importing
+curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | gpg --show-keys
+# This instance's fingerprint: 80A3 D1FA 02E2 97F5 5F73 B8C2 AB16 B30A 66F4 1FFB
+
+# Import the signing key
+curl -fsSL https://reprox.dev/ftaeger/rustylight-server/public.key | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/rustylight-server.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/rustylight-server.gpg] https://reprox.dev/ftaeger/rustylight-server stable main" | \
+  sudo tee /etc/apt/sources.list.d/rustylight-server.list
+# To include Releases marked as Pre-Release, change the URL to
+# https://reprox.dev/ftaeger/rustylight-server/prerelease
+
+# Install
+sudo apt update && sudo apt install rustylight-server
+```
+
+#### Fedora / RHEL / CentOS
+
+```bash
+sudo tee /etc/yum.repos.d/rustylight-server.repo << EOF
+[rustylight-server]
+name=rustylight-server from GitHub via Reprox
+baseurl=https://reprox.dev/ftaeger/rustylight-server
+enabled=1
+gpgcheck=0
+repo_gpgcheck=1
+gpgkey=https://reprox.dev/ftaeger/rustylight-server/public.key
+EOF
+# To include Releases marked as Pre-Release, change the URL to
+# https://reprox.dev/ftaeger/rustylight-server/prerelease
+
+sudo dnf install rustylight-server
+# Optional: verify the key fingerprint on first update/install
+# This instance's fingerprint: 80A3 D1FA 02E2 97F5 5F73 B8C2 AB16 B30A 66F4 1FFB
+```
+
+### Manual Download
+
+#### Debian / Ubuntu / Raspberry Pi
 
 Download the `.deb` for your architecture from the [latest release](../../releases/latest):
 
@@ -30,7 +100,7 @@ sudo dpkg -i rustylight-server_<version>_<arch>.deb
 
 Supported architectures: `amd64`, `i386`, `arm64` (Pi 3/4/Zero 2W 64-bit), `armhf` (Pi 3/4/Zero 2W 32-bit).
 
-### RHEL / Rocky Linux / AlmaLinux 8, 9, 10
+#### RHEL / Rocky Linux / AlmaLinux 8, 9, 10
 
 ```bash
 sudo rpm -i rustylight-server-<version>-1.<arch>.rpm
