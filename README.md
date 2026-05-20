@@ -4,7 +4,19 @@ A Rust Linux daemon that controls a [Kuando Busylight](https://www.kuando.com/bu
 
 ## Supported Hardware
 
-All Kuando Busylight models are supported: UC Omega, Alpha, UC, Lync, UC2. The device is detected automatically by USB VID/PID at startup and on reconnection.
+The server supports the following Kuando Busylight models, detected automatically by USB VID/PID at startup and on reconnection.
+
+| Vendor | Product | USB ID | Verified |
+|--------|---------|--------|:--------:|
+| Kuando | Busylight UC Omega | `04d8:f848` | — |
+| Kuando | Busylight UC | `04d8:f8f8` | — |
+| Kuando | Busylight Lync | `04d8:2013` | — |
+| Kuando | Busylight Lync | `04d8:2014` | — |
+| Kuando | Busylight Alpha | `27bb:3bca` | — |
+| Kuando | Busylight Alpha | `27bb:3bcb` | — |
+| Kuando | Busylight Omega | `27bb:3bcd` | ✅ |
+| Kuando | Busylight UC2 | `27bb:3bc8` | — |
+| Kuando | Busylight UC2 | `27bb:3bc9` | — |
 
 ## Installation
 
