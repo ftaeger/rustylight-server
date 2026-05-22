@@ -1,6 +1,6 @@
 [package]
 name = "rustylight-server"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["ftaeger"]
 description = "HTTP REST API server for Kuando Busylight USB device control"
