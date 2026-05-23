@@ -51,6 +51,11 @@ pub const KNOWN_DEVICES: &[KnownDevice] = &[
     },
     KnownDevice {
         vid: 0x27BB,
+        pid: 0x3BCE,
+        variant: ModelVariant::Alpha,
+    },
+    KnownDevice {
+        vid: 0x27BB,
         pid: 0x3BC8,
         variant: ModelVariant::Uc2,
     },
@@ -83,5 +88,10 @@ mod tests {
     #[test]
     fn unknown_vid_pid_returns_none() {
         assert!(ModelVariant::from_vid_pid(0xDEAD, 0xBEEF).is_none());
+    }
+
+    #[test]
+    fn alpha_3bce_resolves_to_variant() {
+        assert!(ModelVariant::from_vid_pid(0x27BB, 0x3BCE).is_some());
     }
 }

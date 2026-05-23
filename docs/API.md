@@ -323,6 +323,7 @@ The server auto-detects any of the following Kuando Busylight models by USB VID/
 | Busylight Alpha | 0x27BB | 0x3BCA |
 | Busylight Alpha | 0x27BB | 0x3BCB |
 | Busylight Omega | 0x27BB | 0x3BCD |
+| Busylight Alpha | 0x27BB | 0x3BCE |
 | Busylight UC | 0x04D8 | 0xF8F8 |
 | Busylight Lync | 0x04D8 | 0x2013 |
 | Busylight Lync | 0x04D8 | 0x2014 |
