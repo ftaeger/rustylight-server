@@ -6,5 +6,6 @@ SUBSYSTEM=="hidraw", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="2014", GROUP="p
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="27bb", ATTRS{idProduct}=="3bca", GROUP="plugdev", MODE="0660"
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="27bb", ATTRS{idProduct}=="3bcb", GROUP="plugdev", MODE="0660"
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="27bb", ATTRS{idProduct}=="3bcd", GROUP="plugdev", MODE="0660"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="27bb", ATTRS{idProduct}=="3bce", GROUP="plugdev", MODE="0660"
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="27bb", ATTRS{idProduct}=="3bc8", GROUP="plugdev", MODE="0660"
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="27bb", ATTRS{idProduct}=="3bc9", GROUP="plugdev", MODE="0660"
